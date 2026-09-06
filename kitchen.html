@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#4a2c0a">
+<meta name="robots" content="noindex,nofollow">
+<title>🍞 Kitchen Board — BM Ventures</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --br:#4a2c0a;--gold:#c8841a;--cream:#fdf6ec;
+  --gr:#1a6b1a;--rd:#b22222;--bl:#1456a0;--pu:#6b3fa0;--or:#a05000;
+  --border:#e0d4c4;--card:#fff;--bg:#f0ebe3;--text:#1a1a1a;--sub:#777;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:15px}
+.top{background:var(--br);color:#fff;padding:12px 16px 13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;position:sticky;top:0;z-index:50}
+.top h1{font-size:19px;font-weight:900;letter-spacing:-.2px;white-space:nowrap;min-width:0}
+.top .who{font-size:12px;opacity:.75;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top .spacer{flex:1 1 0;min-width:0}
+.clock{font-size:13px;font-weight:700;opacity:.9;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* The kitchen manager is given a phone, not the laptop this board was drawn for. Below
+   this width the header drops what a person standing in the kitchen already knows — the
+   date, the clock, which kitchen they are in — and keeps what they cannot know: whether
+   the board is live, who is signed in, and the way to add a phone request. */
+@media(max-width:700px){
+  .top{gap:8px 10px}
+  .top h1{font-size:16.5px}
+  .top .who,.clock{display:none}
+  .top .spacer{flex-basis:100%;height:0}
+  .top .btn{flex:1 1 100%}
+}
+.wrap{max-width:1500px;margin:0 auto;padding:18px 16px 60px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:18px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 15px}
+.stat-l{font-size:11px;color:var(--sub);font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+.stat-v{font-size:26px;font-weight:800;color:var(--br);line-height:1.15;margin-top:3px}
+.sv-r{color:var(--rd)}.sv-g{color:var(--gr)}.sv-o{color:var(--or)}
+.cols{display:grid;grid-template-columns:1.15fr 1fr;gap:18px;align-items:start}
+@media(max-width:1000px){.cols{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px 18px}
+.panel-hdr{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+.panel-hdr h2{font-size:15px;font-weight:800;color:var(--br)}
+.panel-hdr .hint{font-size:12px;color:var(--sub)}
+.panel-hdr .spacer{flex:1}
+.req{border:1px solid var(--border);border-radius:13px;padding:13px 15px;margin-bottom:10px;cursor:pointer;background:var(--cream);display:grid;grid-template-columns:1fr auto;gap:4px 14px;align-items:center}
+.req:hover{border-color:var(--gold)}
+.req.sel{border-color:var(--gold);box-shadow:0 0 0 2px rgba(200,132,26,.25)}
+.req-shop{font-size:15px;font-weight:800;color:var(--br)}
+.req-meta{font-size:12px;color:var(--sub);margin-top:2px}
+.req-val{font-size:15px;font-weight:800;text-align:right}
+.tag{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;padding:3px 8px;border-radius:20px;margin-left:8px;vertical-align:1px}
+.t-new{background:#fdecec;color:var(--rd)}
+.t-pack{background:#fff3dd;color:var(--or)}
+.t-out{background:#e6f2e6;color:var(--gr)}
+.empty{text-align:center;color:var(--sub);font-size:13px;padding:26px 10px;line-height:1.6}
+.bake{display:grid;grid-template-columns:1fr auto auto;gap:2px 14px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+.bake:last-child{border-bottom:none}
+.bake-n{font-weight:700}
+.bake-c{font-size:11px;color:var(--sub);grid-column:1;margin-top:-2px}
+.bake-q{font-size:19px;font-weight:800;color:var(--br);font-variant-numeric:tabular-nums}
+.bake-for{font-size:11px;color:var(--sub);text-align:right;max-width:190px;line-height:1.4}
+.line{display:grid;grid-template-columns:1fr 62px 108px 86px;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+.line:last-of-type{border-bottom:none}
+.line-n{font-weight:700;font-size:14px}
+.line-c{font-size:11px;color:var(--sub)}
+.line-ask{text-align:center;font-size:14px;font-weight:700;color:var(--sub);font-variant-numeric:tabular-nums}
+.stp{display:flex;align-items:center;gap:0;border:1.5px solid var(--border);border-radius:10px;overflow:hidden}
+.stp button{width:32px;height:34px;border:none;background:var(--cream);font-size:17px;font-weight:800;color:var(--br);cursor:pointer}
+.stp button:hover{background:#f3e6d2}
+.stp input{width:44px;height:34px;border:none;text-align:center;font-size:14px;font-weight:800;font-family:inherit;background:var(--card);color:var(--text);-moz-appearance:textfield}
+.stp input::-webkit-outer-spin-button,.stp input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.line-v{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.line.short .line-v{color:var(--rd)}
+.hdr-row{display:grid;grid-template-columns:1fr 62px 108px 86px;gap:10px;font-size:10px;font-weight:800;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;padding-bottom:7px;border-bottom:2px solid var(--border)}
+.hdr-row span:nth-child(2),.hdr-row span:nth-child(3){text-align:center}
+.hdr-row span:nth-child(4){text-align:right}
+.tot{display:flex;justify-content:space-between;align-items:baseline;padding:13px 0 3px;font-size:15px;font-weight:800;color:var(--br)}
+.tot .big{font-size:23px}
+.btn{border:none;border-radius:11px;padding:12px 18px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit}
+.btn:active{transform:scale(.985)}
+.btn-gr{background:var(--gr);color:#fff}
+.btn-gold{background:var(--gold);color:#fff}
+.btn-out{background:none;border:1.5px solid var(--border);color:var(--br)}
+.btn-sm{padding:8px 13px;font-size:12.5px;border-radius:9px}
+.btn-row{display:flex;gap:9px;margin-top:14px}
+.btn-row .btn{flex:1}
+.note{font-size:12px;color:var(--sub);line-height:1.55;margin-top:10px}
+.al{border-radius:11px;padding:10px 13px;font-size:12.5px;line-height:1.55;margin-bottom:12px}
+.al-w{background:#fff8e8;border:1px solid #e8d5a8;color:#7a5a10}
+.al-i{background:#eaf2fb;border:1px solid #c5d8ee;color:#17497e}
+.sent{background:#e6f2e6;border:1px solid #b8d8b8;color:#1a5a1a;border-radius:11px;padding:11px 14px;font-size:13px;line-height:1.6;margin-bottom:12px}
+.log-row{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px}
+.log-row:last-child{border-bottom:none}
+.log-m{font-size:11px;color:var(--sub)}
+.log-v{font-weight:800;text-align:right;font-variant-numeric:tabular-nums}
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:var(--br);color:#fff;padding:13px 22px;border-radius:12px;font-size:14px;font-weight:700;z-index:300;opacity:0;pointer-events:none;transition:opacity .2s;box-shadow:0 6px 24px rgba(0,0,0,.3)}
+.toast.on{opacity:1}
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:250;display:none;align-items:center;justify-content:center;padding:20px}
+.mbg.on{display:flex}
+.modal{background:var(--card);border-radius:16px;padding:20px 22px;max-width:520px;width:100%;max-height:86vh;overflow-y:auto}
+.modal h3{font-size:17px;font-weight:900;color:var(--br);margin-bottom:12px}
+label{display:block;font-size:11px;font-weight:800;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;margin:11px 0 5px}
+select,input[type=text],input[type=number],textarea{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:var(--card);color:var(--text)}
+textarea{min-height:70px;resize:vertical}
+@media print{
+  body{background:#fff}
+  .top,.stats,.no-print{display:none!important}
+  .wrap{padding:0;max-width:none}
+  .cols{grid-template-columns:1fr}
+  .panel{border:none;padding:0}
+}
+/* Phone. Last in the file so it wins against the desktop rules above rather than being
+   silently overridden by them. The kitchen manager is handed a phone this week, not the
+   laptop this board was drawn for. */
+@media(max-width:700px){
+  .wrap{padding:14px 12px 60px}
+  .stats{grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+  .stat{padding:10px 12px;border-radius:12px}
+  .stat-v{font-size:21px}
+  .panel{padding:13px 14px;border-radius:14px}
+  .panel-hdr{flex-wrap:wrap;gap:6px}
+  /* Four columns of packing controls do not fit 390px, so the money moves under the line
+     instead of being crushed to nothing. */
+  .line,.hdr-row{grid-template-columns:1fr 44px 104px;gap:8px}
+  .line-v{grid-column:1/-1;text-align:left;font-size:12.5px;color:var(--sub)}
+  .hdr-row span:nth-child(4){display:none}
+  .req{grid-template-columns:1fr;gap:6px}
+  .req-val{text-align:left;font-size:16px}
+  .bake{grid-template-columns:1fr auto;gap:2px 10px}
+  .bake-for{grid-column:1/-1;text-align:left;max-width:none}
+}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>🍞 Kitchen Board</h1>
+  <div class="who" id="kname"></div>
+  <div class="spacer"></div>
+  <div class="clock" id="clock"></div>
+  <div id="sync-pill" style="font-size:10.5px;font-weight:800;padding:5px 10px;border-radius:20px;background:rgba(255,255,255,.16);white-space:nowrap">…</div>
+  <span data-session-chip="dark"></span><span data-settings-btn></span>
+  <button class="btn btn-out btn-sm no-print" style="background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);color:#fff" onclick="openNew()">+ Request by phone</button>
+</div>
+
+<div class="wrap">
+  <div class="stats">
+    <div class="stat"><div class="stat-l">Shops waiting</div><div class="stat-v sv-r" id="s-wait">0</div></div>
+    <div class="stat"><div class="stat-l">Items to make</div><div class="stat-v sv-o" id="s-items">0</div></div>
+    <div class="stat"><div class="stat-l">Dispatched today</div><div class="stat-v sv-g" id="s-out">0</div></div>
+    <div class="stat"><div class="stat-l">Value sent today</div><div class="stat-v" id="s-val">₹0</div></div>
+  </div>
+
+  <div class="cols">
+    <div>
+      <div class="panel" style="margin-bottom:18px">
+        <div class="panel-hdr">
+          <h2>Requests</h2>
+          <div class="hint" id="req-hint"></div>
+          <div class="spacer"></div>
+        </div>
+        <div id="req-list"></div>
+      </div>
+
+      <div class="panel no-print">
+        <div class="panel-hdr"><h2>Sent today</h2><div class="spacer"></div>
+          <button class="btn btn-out btn-sm" onclick="window.print()">Print board</button></div>
+        <div id="log-list"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel" id="pack-panel"></div>
+      <div class="panel no-print" style="margin-top:18px">
+        <div class="panel-hdr"><h2>Everything to make</h2><div class="hint">across all waiting shops</div></div>
+        <div id="bake-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mbg" id="m-new"><div class="modal">
+  <h3>Request came in by phone</h3>
+  <div class="al al-i">Shops that ring instead of sending from the counter app still belong on the board — otherwise the day's real total is wrong and nobody can tell why.</div>
+  <label>Which shop</label>
+  <select id="nw-shop"></select>
+  <label>Who called</label>
+  <input type="text" id="nw-by" placeholder="Name of the person at the shop">
+  <label>What they asked for</label>
+  <textarea id="nw-items" placeholder="One per line, e.g.&#10;Chocolate Truffle 1Kg x2&#10;Pineapple Pastry x12"></textarea>
+  <div class="note">Names are matched against the product list. Anything unrecognised is still added, priced at zero, so it can be corrected rather than lost.</div>
+  <div class="btn-row">
+    <button class="btn btn-out" onclick="closeM('m-new')">Cancel</button>
+    <button class="btn btn-gold" onclick="saveNew()">Add to board</button>
+  </div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script src="supabase-config.js?v=32"></script>
+<script src="sync.js?v=32"></script>
+<script src="session.js?v=32"></script>
+<script src="settings.js?v=32"></script>
+<script>
+// ══════════════════════════════════════════════════════════════
+// KITCHEN BOARD
+// ══════════════════════════════════════════════════════════════
+// The kitchen currently learns what to bake from WhatsApp messages that arrive through
+// the evening and are answered from memory. This screen is the same conversation with a
+// shape: what each shop asked for, what was actually packed, and what left the door.
+//
+// Reads and writes through Sync, so a request raised on a shop tablet lands here in
+// seconds and the chef's phone sees the same rows. It used to keep its own localStorage
+// copy, which meant the kitchen manager's phone and the chef's phone were two unrelated
+// boards that happened to look alike — the one thing this screen must not be.
+
+const PK='cs7_p', KINV_KEY='cs9_kinv';
+Session.require(['kitchen_manager','owner']);
+
+// Field names on the wire are snake_case, shared with the counter, chef and owner screens.
+// This board was written against its own camelCase shape, so the two are mapped at the
+// boundary rather than renaming several hundred references.
+const fromR=r=>({id:r.id,date:r.date,time:r.time,shopId:r.shop_id,shopName:r.shop_name,
+  by:r.by_staff,via:r.via,status:r.status||'new',items:r.items||[],
+  sentAt:r.sent_at,invNo:r.inv_no,total:r.total,demo:r.demo});
+const toR=r=>({id:r.id,date:r.date,time:r.time,shop_id:r.shopId,shop_name:r.shopName,
+  by_staff:r.by,via:r.via,status:r.status,items:r.items,
+  sent_at:r.sentAt,inv_no:r.invNo,total:r.total,demo:r.demo});
+const fromD=d=>({id:d.id,reqId:d.req_id,date:d.date,time:d.time,invNo:d.inv_no,
+  shopId:d.shop_id,shopName:d.shop_name,total:d.total,items:d.items||[]});
+const toD=d=>({id:d.id,req_id:d.reqId,date:d.date,time:d.time,inv_no:d.invNo,
+  shop_id:d.shopId,shop_name:d.shopName,total:d.total,items:d.items});
+
+const greq=()=>Sync.list('requests').map(fromR);
+const sreq=v=>Sync.putMany('requests',v.map(toR));
+const gdisp=()=>Sync.list('dispatches').map(fromD);
+const sdisp=v=>Sync.putMany('dispatches',v.map(toD));
+const gprods=()=>{try{return JSON.parse(localStorage.getItem(PK))||[];}catch(e){return[];}};
+
+// A request may arrive with no price on its lines — a shop whose products are unpriced, an
+// older row, or a phone request typed by name. Reading i.price straight through made every
+// invoice total ₹0, which defeats the entire purpose of packing here instead of re-typing
+// an invoice later. Resolved by name against the kitchen's own product list, and frozen
+// onto the line at dispatch so the record cannot drift afterwards.
+let _pmap=null;
+function priceMap(){
+  if(_pmap)return _pmap;
+  _pmap={};
+  gprods().forEach(p=>{if(p&&p.n)_pmap[String(p.n).toLowerCase()]=p.p||0;});
+  return _pmap;
+}
+function priceOf(i){
+  if(i&&i.price>0)return i.price;
+  const m=priceMap();
+  const exact=m[String(i&&i.name||'').toLowerCase()];
+  if(exact>0)return exact;
+  // Loose match, because "Chocolate Truffle 1Kg" and "Chocolate Truffle 1 Kg" are the same
+  // cake to everyone except a string comparison.
+  const key=String(i&&i.name||'').toLowerCase().replace(/\s+/g,'');
+  const hit=Object.keys(m).find(n=>n.replace(/\s+/g,'')===key);
+  return hit?m[hit]:0;
+}
+
+const fmt=n=>'₹'+Math.round(n||0).toLocaleString('en-IN');
+const dkey=d=>{const x=d||new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');};
+const td=()=>dkey();
+const hhmm=d=>(d||new Date()).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let toastT;
+function toast(msg,ms){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');
+  clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('on'),ms||2400);}
+function openM(id){document.getElementById(id).classList.add('on');}
+function closeM(id){document.getElementById(id).classList.remove('on');}
+
+// The shops this kitchen feeds. Held here rather than typed each time because a
+// mistyped shop name splits one shop's history into two on every report downstream.
+const SHOPS=Object.keys(Session.shops)
+  .filter(id=>id!=='K1')
+  .map(id=>({id:id,name:Session.shops[id]}));
+
+let selId=null;
+let packed={};   // productId -> qty packed, for the open request only
+
+// ── STATUS ────────────────────────────────────────────────────
+const STATUS={
+  new:{label:'Waiting',cls:'t-new'},
+  // The chef now says when baking is finished, so the manager knows what is ready to pack
+  // instead of walking to the oven to ask.
+  made:{label:'Made \u2014 ready to pack',cls:'t-pack'},
+  packing:{label:'Packing',cls:'t-pack'},
+  dispatched:{label:'Sent',cls:'t-out'}
+};
+
+// Requests are filed under the date the shop needs them, so an order placed this afternoon
+// for tomorrow is dated tomorrow. Showing only today's meant a synced request appeared
+// nowhere — the failure looked identical to sync being broken.
+//
+// The board therefore shows everything still open up to tomorrow, plus what went out today
+// so the log and the invoice trail stay intact.
+function dueReqs(){
+  const limit=tom();
+  return greq().filter(r=>
+    (r.status!=='dispatched'&&String(r.date||'')<=limit) || (r.status==='dispatched'&&r.date===td()));
+}
+function todayReqs(){return dueReqs();}
+function openReqs(){return dueReqs().filter(r=>r.status!=='dispatched');}
+const tom=()=>{const d=new Date();d.setDate(d.getDate()+1);return dkey(d);};
+function whenTag(d){
+  if(d===td())return '';
+  if(d===tom())return '<span class="tag" style="background:#eef4ff;color:#24406e">for tomorrow</span>';
+  return '<span class="tag" style="background:#fdeaea;color:#8a1c1c">overdue</span>';
+}
+
+// ── STATS ─────────────────────────────────────────────────────
+function renderStats(){
+  const open=openReqs(), out=todayReqs().filter(r=>r.status==='dispatched');
+  const shops=new Set(open.map(r=>r.shopId));
+  const items=open.reduce((a,r)=>a+r.items.reduce((b,i)=>b+(i.ask||0),0),0);
+  const val=out.reduce((a,r)=>a+r.items.reduce((b,i)=>b+(i.packed||0)*priceOf(i),0),0);
+  document.getElementById('s-wait').textContent=shops.size;
+  document.getElementById('s-items').textContent=items;
+  document.getElementById('s-out').textContent=out.length;
+  document.getElementById('s-val').textContent=fmt(val);
+}
+
+// ── REQUEST LIST ──────────────────────────────────────────────
+function renderReqs(){
+  const list=document.getElementById('req-list');
+  const rs=todayReqs().sort((a,b)=>(a.status==='dispatched')-(b.status==='dispatched')||a.id-b.id);
+  const tomN=rs.filter(r=>r.date===tom()).length;
+  document.getElementById('req-hint').textContent=rs.length
+    ?(rs.length+' open'+(tomN?', '+tomN+' for tomorrow':'')):'';
+  if(!rs.length){
+    list.innerHTML='<div class="empty">Nothing outstanding.<br>Requests sent from a shop counter land here on their own, for today or tomorrow.</div>';
+    return;
+  }
+  list.innerHTML=rs.map(r=>{
+    const st=STATUS[r.status]||STATUS.new;
+    const n=r.items.reduce((a,i)=>a+(i.ask||0),0);
+    const v=r.items.reduce((a,i)=>a+(i.ask||0)*priceOf(i),0);
+    const sub=r.status==='dispatched'
+      ? 'Sent '+esc(r.sentAt||'')+' · invoice '+esc(r.invNo||'—')
+      : esc(r.time)+' · '+esc(r.by||'shop')+' · '+r.items.length+' kinds, '+n+' pieces';
+    return '<div class="req'+(String(r.id)===String(selId)?' sel':'')+'" onclick="selectReq(\''+r.id+'\')">'
+      +'<div><div class="req-shop">'+esc(r.shopName)+'<span class="tag '+st.cls+'">'+st.label+'</span>'+whenTag(r.date)+'</div>'
+      +'<div class="req-meta">'+sub+'</div></div>'
+      +'<div class="req-val">'+fmt(v)+'</div></div>';
+  }).join('');
+}
+
+// ── WHAT TO MAKE, ALL SHOPS TOGETHER ──────────────────────────
+// The single question the kitchen actually asks at 6am. Five separate request lists do
+// not answer it; one total per item does, with the shop split kept alongside so a
+// shortfall can be allocated instead of guessed.
+function renderBake(){
+  const el=document.getElementById('bake-list');
+  const agg={};
+  openReqs().forEach(r=>r.items.forEach(i=>{
+    const k=i.name;
+    const a=agg[k]=agg[k]||{name:i.name,cat:i.cat||'',qty:0,shops:[]};
+    a.qty+=i.ask||0;
+    a.shops.push(r.shopName.split(' ')[0]+' '+(i.ask||0)+(r.date===tom()?' (tom)':''));
+  }));
+  const rows=Object.values(agg).sort((a,b)=>b.qty-a.qty);
+  if(!rows.length){el.innerHTML='<div class="empty">Nothing outstanding.</div>';return;}
+  el.innerHTML=rows.map(a=>'<div class="bake">'
+    +'<div><div class="bake-n">'+esc(a.name)+'</div><div class="bake-c">'+esc(a.cat)+'</div></div>'
+    +'<div class="bake-q">'+a.qty+'</div>'
+    +'<div class="bake-for">'+esc(a.shops.join(' · '))+'</div></div>').join('');
+}
+
+// ── PACKING ───────────────────────────────────────────────────
+function selectReq(id){
+  selId=String(id);
+  const r=greq().find(x=>String(x.id)===selId);
+  packed={};
+  // Default every line to what was asked for. The kitchen types only where it is short,
+  // which is the exception — starting from zero would mean re-entering the whole order.
+  if(r)r.items.forEach(i=>{packed[i.name]=(r.status==='dispatched')?(i.packed||0):(i.packed!=null?i.packed:i.ask);});
+  renderAll();
+}
+
+function setPack(name,v){
+  packed[name]=Math.max(0,parseInt(v)||0);
+  renderPack();
+}
+function bump(name,d){setPack(name,(packed[name]||0)+d);}
+
+function renderPack(){
+  const el=document.getElementById('pack-panel');
+  const r=greq().find(x=>String(x.id)===selId);
+  if(!r){
+    el.innerHTML='<div class="panel-hdr"><h2>Packing</h2></div>'
+      +'<div class="empty">Pick a request on the left to start packing it.</div>';
+    return;
+  }
+  const done=r.status==='dispatched';
+  const rows=r.items.map(i=>{
+    const p=packed[i.name]||0, short=p<(i.ask||0), unit=priceOf(i);
+    const stepper=done
+      ? '<div class="line-ask" style="color:var(--text);font-size:15px">'+p+'</div>'
+      : '<div class="stp"><button onclick="bump(\''+esc(i.name).replace(/'/g,"\\'")+'\',-1)">−</button>'
+        +'<input type="number" value="'+p+'" onchange="setPack(\''+esc(i.name).replace(/'/g,"\\'")+'\',this.value)">'
+        +'<button onclick="bump(\''+esc(i.name).replace(/'/g,"\\'")+'\',1)">+</button></div>';
+    return '<div class="line'+(short?' short':'')+'">'
+      +'<div><div class="line-n">'+esc(i.name)+'</div><div class="line-c">'+esc(i.cat||'')+(unit?' · '+fmt(unit)+' each':' · no price found')+'</div></div>'
+      +'<div class="line-ask">'+(i.ask||0)+'</div>'
+      +stepper
+      +'<div class="line-v">'+fmt(p*unit)+(short?'<div class="line-c" style="color:var(--rd)">'+((i.ask||0)-p)+' short</div>':'')+'</div>'
+      +'</div>';
+  }).join('');
+  const total=r.items.reduce((a,i)=>a+(packed[i.name]||0)*priceOf(i),0);
+  const shortLines=r.items.filter(i=>(packed[i.name]||0)<(i.ask||0)).length;
+  const noPrice=r.items.filter(i=>!(priceOf(i)>0)&&(packed[i.name]||0)>0).length;
+
+  el.innerHTML='<div class="panel-hdr"><h2>'+esc(r.shopName)+'</h2>'
+    +'<div class="hint">asked at '+esc(r.time)+' by '+esc(r.by||'shop')+'</div></div>'
+    +(done?'<div class="sent"><strong>Sent '+esc(r.sentAt)+'</strong> — invoice '+esc(r.invNo)+'. '
+      +'This is the record of what left the kitchen; it can be printed again but not changed.</div>':'')
+    +(!done&&shortLines?'<div class="al al-w">'+shortLines+' line'+(shortLines>1?'s are':' is')+' short of what the shop asked for. '
+      +'Send it anyway if that is all there is — the invoice bills only what is packed, and the shortfall stays on the record.</div>':'')
+    +(!done&&noPrice?'<div class="al al-w">'+noPrice+' packed line'+(noPrice>1?'s have':' has')+' no price in the product list, so '
+      +(noPrice>1?'they':'it')+' will bill at ₹0. Add the price in the counter app before sending, or send and correct the invoice.</div>':'')
+    +'<div class="hdr-row"><span>Item</span><span>Asked</span><span>Packed</span><span>Value</span></div>'
+    +rows
+    +'<div class="tot"><span>Invoice total</span><span class="big">'+fmt(total)+'</span></div>'
+    +(done?'<div class="btn-row no-print"><button class="btn btn-out" onclick="printNote(\''+r.id+'\')">Print dispatch note</button></div>'
+      :'<div class="btn-row no-print">'
+        +'<button class="btn btn-out" onclick="packAll()">Pack everything asked</button>'
+        +'<button class="btn btn-gr" onclick="dispatch()">Send &amp; invoice '+fmt(total)+'</button></div>'
+      +'<div class="note">Sending marks the stock as gone from the kitchen and raises the invoice in one step, '
+      +'so nothing has to be typed a second time at the end of the day.</div>');
+}
+
+function packAll(){
+  const r=greq().find(x=>String(x.id)===selId);if(!r)return;
+  r.items.forEach(i=>packed[i.name]=i.ask||0);
+  renderPack();
+}
+
+// Invoice numbers must not move backwards or repeat, so the counter is stored rather
+// than derived from how many dispatches happen to exist.
+function nextInv(){
+  let n=parseInt(localStorage.getItem(KINV_KEY)||'0',10)||0;
+  n++;localStorage.setItem(KINV_KEY,String(n));
+  return 'K'+new Date().getFullYear()+'-'+String(n).padStart(4,'0');
+}
+
+function dispatch(){
+  const reqs=greq(), idx=reqs.findIndex(x=>String(x.id)===selId);
+  if(idx<0)return;
+  const r=reqs[idx];
+  const total=r.items.reduce((a,i)=>a+(packed[i.name]||0)*priceOf(i),0);
+  if(total<=0&&!confirm('This request bills ₹0.\n\nUsually that means the products have no price set in the counter app. Send it as a zero invoice anyway?'))return;
+  const short=r.items.filter(i=>(packed[i.name]||0)<(i.ask||0));
+  if(short.length&&!confirm(short.length+' line(s) short of what '+r.shopName+' asked for.\n\nSend '+fmt(total)+' anyway?'))return;
+  // The resolved price is written onto the line so the dispatch record stays what it was
+  // at the moment of sending, even if someone edits the product list afterwards.
+  r.items.forEach(i=>{i.packed=packed[i.name]||0;i.price=priceOf(i);});
+  r.status='dispatched';
+  r.sentAt=hhmm();
+  r.invNo=nextInv();
+  r.total=total;
+  reqs[idx]=r;sreq(reqs);
+  const log=gdisp();
+  log.push({id:Date.now(),reqId:r.id,date:td(),time:r.sentAt,invNo:r.invNo,
+    shopId:r.shopId,shopName:r.shopName,total:total,
+    items:r.items.map(i=>({name:i.name,ask:i.ask,packed:i.packed,price:i.price}))});
+  sdisp(log);
+  renderAll();
+  toast('✅ '+r.shopName+' — '+fmt(total)+' · invoice '+r.invNo,3200);
+}
+
+// ── SENT TODAY ────────────────────────────────────────────────
+function renderLog(){
+  const el=document.getElementById('log-list');
+  const rows=gdisp().filter(d=>d.date===td()).sort((a,b)=>b.id-a.id);
+  if(!rows.length){el.innerHTML='<div class="empty">Nothing has left the kitchen today.</div>';return;}
+  const sum=rows.reduce((a,d)=>a+d.total,0);
+  el.innerHTML=rows.map(d=>'<div class="log-row"><div><strong>'+esc(d.shopName)+'</strong>'
+    +'<div class="log-m">'+esc(d.time)+' · '+esc(d.invNo)+' · '+d.items.length+' kinds</div></div>'
+    +'<div class="log-v">'+fmt(d.total)+'</div></div>').join('')
+    +'<div class="tot"><span>Total out</span><span class="big">'+fmt(sum)+'</span></div>';
+}
+
+function printNote(id){
+  const r=greq().find(x=>String(x.id)===String(id));
+  if(!r)return;
+  selId=String(id);renderAll();
+  setTimeout(()=>window.print(),120);
+}
+
+// ── PHONE REQUESTS ────────────────────────────────────────────
+function openNew(){
+  const sel=document.getElementById('nw-shop');
+  sel.innerHTML=SHOPS.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join('');
+  document.getElementById('nw-by').value='';
+  document.getElementById('nw-items').value='';
+  openM('m-new');
+}
+// "Chocolate Truffle 1Kg x2" is how a person writes it down. Splitting the trailing
+// quantity off the name is the whole parser; anything it cannot match is still kept,
+// because a line silently dropped here is a shop that does not get its cakes.
+function parseLine(txt){
+  const m=txt.match(/^(.*?)[\s]*[x×*]\s*(\d+)\s*$/i);
+  const name=(m?m[1]:txt).trim();
+  const qty=m?parseInt(m[2]):1;
+  return {name,qty};
+}
+function saveNew(){
+  const shopId=document.getElementById('nw-shop').value;
+  const shop=SHOPS.find(s=>s.id===shopId);
+  const by=(document.getElementById('nw-by').value||'').trim();
+  const lines=(document.getElementById('nw-items').value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!lines.length){toast('Nothing written down yet');return;}
+  const prods=gprods();
+  const items=lines.map(l=>{
+    const {name,qty}=parseLine(l);
+    const p=prods.find(x=>x.n&&x.n.toLowerCase()===name.toLowerCase())
+      ||prods.find(x=>x.n&&x.n.toLowerCase().includes(name.toLowerCase()));
+    return {name:p?p.n:name,cat:p?p.c:'Not on product list',price:p?(p.p||0):0,ask:qty,packed:null};
+  });
+  const reqs=greq();
+  const r={id:Date.now(),date:td(),time:hhmm(),shopId:shop.id,shopName:shop.name,
+    by:by||'phone',via:'phone',status:'new',items:items};
+  reqs.push(r);sreq(reqs);
+  closeM('m-new');selectReq(r.id);
+  toast('Added — '+shop.name+', '+items.length+' lines');
+}
+
+function renderAll(){renderStats();renderReqs();renderBake();renderPack();renderLog();}
+function tick(){document.getElementById('clock').textContent=
+  new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})+'  ·  '+hhmm();}
+document.getElementById('kname').textContent=Session.shopName('K1');
+tick();setInterval(tick,20000);
+renderAll();
+// Another device — a shop tablet sending a request, or the chef's phone — repaints this
+// board without the kitchen manager touching anything.
+['requests','dispatches'].forEach(t=>Sync.subscribe(t,()=>renderAll()));
+Sync.onStatus(s=>{
+  const el=document.getElementById('sync-pill');
+  if(el)el.textContent=s==='live'?'● Live':s==='behind'?'● Catching up':'○ This device only';
+});
+Session.chip();
+</script>
+</body>
+</html>

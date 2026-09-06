@@ -1,0 +1,3 @@
+# Private shop tool — not for search engines.
+User-agent: *
+Disallow: /

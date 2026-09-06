@@ -1,0 +1,63 @@
+# Netlify configuration — belt and braces alongside _headers.
+#
+# _headers only applies when it sits in the PUBLISHED directory. Upload the folder itself
+# rather than its contents and the file lands one level down, is silently ignored, and the
+# app reports "the database library was blocked from loading" — which is what happened.
+# This file is read from the root of the deploy either way.
+
+[build]
+  publish = "."
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    X-Robots-Tag = "noindex, nofollow"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=(self), payment=(), usb=()"
+    # Three things this MUST allow or nothing is shared between devices:
+    #   cdn.jsdelivr.net + unpkg.com + esm.sh   the client library, three sources so one
+    #                                           blocked CDN cannot take the shop offline
+    #   https://*.supabase.co reads and writes
+    #   wss://*.supabase.co   realtime, which is the entire point of the system
+    #   www.googleapis.com    the Drive API — backups fail without it
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://esm.sh; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://lh3.googleusercontent.com; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://unpkg.com https://esm.sh https://www.googleapis.com https://oauth2.googleapis.com; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; object-src 'none'"
+
+# The app's own scripts and entry pages are revalidated every load. A phone quietly running
+# last week's sync.js is indistinguishable from a broken one.
+[[headers]]
+  for = "/sync.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/session.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/google.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/supabase-config.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/login.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"

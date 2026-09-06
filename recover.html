@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Recover Data — BM Ventures</title>
+<link rel="icon" href="icon-192.png">
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:#faf7f2;color:#2a2118;font:16px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif;padding:0 0 60px}
+  header{background:#7b1e2b;color:#fff;padding:18px 20px 20px}
+  h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.2px}
+  header p{margin:6px 0 0;font-size:13px;opacity:.85}
+  main{max-width:820px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+  .card{background:#fff;border:1px solid #e6ded2;border-radius:14px;padding:16px}
+  .card h2{margin:0 0 4px;font-size:16px;font-weight:700}
+  .card .sub{margin:0 0 12px;font-size:13px;color:#7a6b58}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid #f0e9de}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#7a6b58;font-weight:600}
+  td.n{text-align:right;font-variant-numeric:tabular-nums}
+  .win{color:#1c7c4a;font-weight:600}
+  .gap{color:#b3261e;font-weight:600}
+  .row{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+  button{font:inherit;font-weight:600;border-radius:10px;padding:12px 18px;border:1px solid transparent;cursor:pointer;min-height:46px}
+  .primary{background:#7b1e2b;color:#fff}
+  .out{background:#fff;color:#7b1e2b;border-color:#d9c6ba}
+  button:disabled{opacity:.5;cursor:default}
+  .log{margin-top:12px;background:#f5f0e8;border:1px dashed #dfd3c3;border-radius:10px;padding:10px 12px;font-size:13px;white-space:pre-wrap;max-height:240px;overflow:auto;display:none}
+  .note{font-size:13px;color:#7a6b58;margin:10px 0 0}
+  .warn{background:#fdf3e7;border:1px solid #f0d8b4;border-radius:10px;padding:12px;font-size:13px;color:#6b4a1c}
+  select{font:inherit;padding:10px;border:1px solid #d9c6ba;border-radius:10px;background:#fff;min-height:46px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Recover Data</h1>
+  <p>Compares this device against the cloud, and puts back anything missing.</p>
+</header>
+<main>
+  <div class="card">
+    <h2>What is on this device vs the cloud</h2>
+    <p class="sub" id="shopline">Reading settings…</p>
+    <table>
+      <thead><tr><th>Records</th><th class="n">On device</th><th class="n">In cloud</th><th class="n">Missing here</th></tr></thead>
+      <tbody id="tbody"><tr><td colspan="4">Checking…</td></tr></tbody>
+    </table>
+    <div class="row">
+      <button class="out" id="btn-check" onclick="check()">Check again</button>
+      <button class="primary" id="btn-restore" onclick="restore()" disabled>Put missing records back</button>
+    </div>
+    <p class="note">Restore only <strong>adds</strong> what is missing. Nothing on this device is overwritten or deleted.</p>
+    <div class="log" id="log"></div>
+  </div>
+
+  <div class="card">
+    <h2>Restore from a daily backup on this phone</h2>
+    <p class="sub">The app keeps a full copy of the last two days. Use this if the cloud is also short.</p>
+    <div id="bk-warn" class="warn" style="display:none;margin-bottom:12px"></div>
+    <div class="row">
+      <select id="backups"><option value="">No backups found</option></select>
+      <button class="out" onclick="restoreBackup()">Restore this backup</button>
+    </div>
+    <p class="note">Also merge-only — existing records stay.</p>
+  </div>
+
+  <div class="card">
+    <h2>Download everything as a file</h2>
+    <p class="sub">Take a copy off the phone before making any further changes.</p>
+    <div class="row"><button class="out" onclick="dump()">Download backup file</button></div>
+  </div>
+
+  <div class="card">
+    <div class="warn"><strong>What went wrong:</strong> an old test-mode cleanup was putting a weeks-old copy of products, shop details, staff name and the Counter Safe total back over the live ones every time the app opened. That code has been removed, and the app now keeps a daily backup on the device. Sales, expenses and takings were still being synced throughout, so most of it comes back from the cloud.</div>
+  </div>
+</main>
+
+<script>
+// kind → the localStorage key it lives in, and how it is shaped.
+var MAP={
+  products:{k:'cs7_p',t:'arr',label:'Products'},
+  sales:{k:'cs7_s',t:'arr',label:'Sales'},
+  credits:{k:'cs7_c',t:'arr',label:'Credit customers'},
+  creditPayments:{k:'cs9_crpay',t:'arr',label:'Credit payments'},
+  orders:{k:'cs7_o',t:'arr',label:'Orders'},
+  damage:{k:'cs7_dm',t:'arr',label:'Damage'},
+  special:{k:'cs7_sp',t:'arr',label:'Special orders'},
+  refunds:{k:'cs9_refunds',t:'arr',label:'Refunds'},
+  handovers:{k:'cs7_ho',t:'arr',label:'Handovers'},
+  expenses:{k:'cs9_exp',t:'arr',label:'Expenses'},
+  returns:{k:'cs9_rtk',t:'arr',label:'Returns to kitchen'},
+  inventory:{k:'cs9_inv',t:'arr',label:'Shop stock'},
+  staffList:{k:'cs9_stafflist',t:'arr',label:'Staff'},
+  attendance:{k:'cs9_attend',t:'arr',label:'Attendance'},
+  daily:{k:'cs7_d',t:'map',label:'Day closes'}
+};
+var $=function(i){return document.getElementById(i);};
+var cloud={},pending=null;
+
+function cfg(){try{return JSON.parse(localStorage.getItem('cs9_sync'))||{};}catch(e){return{};}}
+function readLocal(m){
+  try{
+    var raw=localStorage.getItem(m.k);
+    var v=raw?JSON.parse(raw):null;
+    if(m.t==='arr')return Array.isArray(v)?v:[];
+    return v&&typeof v==='object'?v:{};
+  }catch(e){return m.t==='arr'?[]:{};}
+}
+function localIds(m){
+  var v=readLocal(m),s={};
+  if(m.t==='arr')v.forEach(function(r){if(r&&r.id!=null)s[String(r.id)]=1;});
+  else Object.keys(v).forEach(function(k){s[k]=1;});
+  return s;
+}
+function say(t,append){
+  var el=$('log');el.style.display='block';
+  el.textContent=append?el.textContent+'\n'+t:t;
+  el.scrollTop=el.scrollHeight;
+}
+
+async function check(){
+  var c=cfg();
+  $('btn-check').disabled=true;
+  if(!c.url||!c.key||!c.shop){
+    $('shopline').textContent='This device has no sync settings saved, so the cloud cannot be read. Open the app → More → Sync and enter the shop code first.';
+    $('btn-check').disabled=false;return;
+  }
+  $('shopline').textContent='Shop code "'+c.shop+'" — checking the cloud…';
+  var base=c.url.replace(/\/$/,'')+'/rest/v1/cm_records';
+  var H={apikey:c.key,Authorization:'Bearer '+c.key};
+  cloud={};
+  try{
+    var rows=[],from=0,page=1000;
+    while(true){
+      var r=await fetch(base+'?shop=eq.'+encodeURIComponent(c.shop)+'&deleted=is.false&select=kind,rec_id,data',
+        {headers:Object.assign({Range:from+'-'+(from+page-1)},H)});
+      if(!r.ok)throw new Error('Cloud replied '+r.status);
+      var batch=await r.json();
+      rows=rows.concat(batch);
+      if(batch.length<page)break;
+      from+=page;
+    }
+    // The `data` column holds the bare record. Rows the staff deliberately deleted are
+    // tombstones (deleted=true, data=null) and are filtered out by the query above —
+    // recovery must never resurrect a deleted sale and inflate the day's takings.
+    rows.forEach(function(row){
+      if(row.data==null)return;
+      if(!cloud[row.kind])cloud[row.kind]={};
+      cloud[row.kind][String(row.rec_id)]=row.data;
+    });
+    $('shopline').textContent='Shop code "'+c.shop+'" — cloud holds '+rows.length+' records.';
+  }catch(e){
+    $('shopline').textContent='Could not read the cloud: '+e.message;
+    $('btn-check').disabled=false;return;
+  }
+  render();
+  $('btn-check').disabled=false;
+}
+
+function render(){
+  var body=$('tbody');body.innerHTML='';
+  pending={};var totalMissing=0;
+  Object.keys(MAP).forEach(function(kind){
+    var m=MAP[kind],have=localIds(m),cl=cloud[kind]||{};
+    var haveN=Object.keys(have).length,clN=Object.keys(cl).length;
+    var miss=Object.keys(cl).filter(function(id){return !have[id];});
+    if(miss.length)pending[kind]=miss;
+    totalMissing+=miss.length;
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+m.label+'</td><td class="n">'+haveN+'</td><td class="n">'+clN+
+      '</td><td class="n '+(miss.length?'gap':'win')+'">'+(miss.length||'—')+'</td>';
+    body.appendChild(tr);
+  });
+  $('btn-restore').disabled=!totalMissing;
+  $('btn-restore').textContent=totalMissing?('Put '+totalMissing+' missing records back'):'Nothing missing';
+}
+
+function restore(){
+  if(!pending)return;
+  var added=0;
+  say('Restoring…');
+  Object.keys(pending).forEach(function(kind){
+    var m=MAP[kind],ids=pending[kind];
+    if(m.t==='arr'){
+      var arr=readLocal(m);
+      ids.forEach(function(id){arr.push(cloud[kind][id]);added++;});
+      localStorage.setItem(m.k,JSON.stringify(arr));
+    }else{
+      var map=readLocal(m);
+      ids.forEach(function(id){map[id]=cloud[kind][id];added++;});
+      localStorage.setItem(m.k,JSON.stringify(map));
+    }
+    say('  '+m.label+': +'+ids.length,true);
+  });
+  // The safe total is a single value, not a list — take the cloud's if this device has none.
+  try{
+    var cs=(cloud.counterSafe||{})._;
+    if(cs&&!parseFloat(localStorage.getItem('cs9_cb_global')||'0')){
+      localStorage.setItem('cs9_cb_global',String(cs.v||0));
+      localStorage.setItem('cs9_cb_global_det',JSON.stringify(cs.det||{}));
+      say('  Counter Safe: restored ₹'+(cs.v||0),true);
+    }
+  }catch(e){}
+  say('\nDone — '+added+' records put back. Close this page and reopen the app.',true);
+  render();
+}
+
+function listBackups(){
+  var sel=$('backups'),keys=[];
+  for(var i=0;i<localStorage.length;i++){
+    var k=localStorage.key(i);
+    if(k&&k.indexOf('cs9_backup_')===0)keys.push(k);
+  }
+  keys.sort().reverse();
+
+  // A backup that could not be written is worse than no backup, because the shop assumes
+  // it exists. If the app ran out of room, say so here where someone will act on it.
+  var failed=localStorage.getItem('cs9_backup_failed');
+  if(failed){
+    var w=$('bk-warn');
+    w.style.display='block';
+    w.innerHTML='<strong>This phone could not save a backup on '+failed+'</strong> — its storage is full. '+
+      'Download a backup file now, then use More → Data → Archive old sales to free space.';
+  }
+  if(!keys.length)return;
+  sel.innerHTML='';
+  keys.forEach(function(k){
+    var o=document.createElement('option');
+    o.value=k;o.textContent=k.replace('cs9_backup_','Backup from ');
+    sel.appendChild(o);
+  });
+}
+
+function restoreBackup(){
+  var key=$('backups').value;
+  if(!key)return alert('No backup selected.');
+  var dump;
+  try{dump=JSON.parse(localStorage.getItem(key));}catch(e){return alert('That backup could not be read.');}
+  if(!dump)return alert('That backup is empty.');
+  if(!confirm('Merge '+key.replace('cs9_backup_','')+' into this device?\n\nExisting records are kept — only missing ones are added.'))return;
+  var added=0;
+  say('Restoring from '+key.replace('cs9_backup_','')+'…');
+  Object.keys(MAP).forEach(function(kind){
+    var m=MAP[kind];
+    if(!dump[m.k])return;
+    var old;try{old=JSON.parse(dump[m.k]);}catch(e){return;}
+    var have=localIds(m);
+    if(m.t==='arr'&&Array.isArray(old)){
+      var arr=readLocal(m),n=0;
+      old.forEach(function(r){if(r&&r.id!=null&&!have[String(r.id)]){arr.push(r);n++;added++;}});
+      if(n){localStorage.setItem(m.k,JSON.stringify(arr));say('  '+m.label+': +'+n,true);}
+    }else if(m.t==='map'&&old&&typeof old==='object'){
+      var map=readLocal(m),c=0;
+      Object.keys(old).forEach(function(d){if(!have[d]){map[d]=old[d];c++;added++;}});
+      if(c){localStorage.setItem(m.k,JSON.stringify(map));say('  '+m.label+': +'+c,true);}
+    }
+  });
+  say('\nDone — '+added+' records put back.',true);
+  render();
+}
+
+function dump(){
+  var out={};
+  for(var i=0;i<localStorage.length;i++){
+    var k=localStorage.key(i);
+    if(k&&/^cs[0-9]_/.test(k))out[k]=localStorage.getItem(k);
+  }
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(out,null,1)],{type:'application/json'}));
+  a.download='bmv-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+
+listBackups();
+render();
+check();
+</script>
+</body>
+</html>

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4a2c0a">
+<meta name="robots" content="noindex,nofollow">
+<title>🍞 Chef — What to make</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --br:#4a2c0a;--gold:#c8841a;--cream:#fdf6ec;--bg:#f2ede5;--card:#fff;
+  --gr:#1a6b1a;--rd:#b22222;--or:#a85000;--bl:#1456a0;
+  --border:#e2d7c7;--text:#1a1a1a;--sub:#7d7266;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:16px;padding-bottom:40px;-webkit-text-size-adjust:100%}
+.top{background:var(--br);color:#fff;padding:14px 16px 15px;position:sticky;top:0;z-index:40}
+.top-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.top h1{font-size:18px;font-weight:900;letter-spacing:-.2px;white-space:nowrap}
+.top .sp{flex:1 1 0;min-width:0}
+.pill{font-size:10.5px;font-weight:800;padding:5px 10px;border-radius:20px;letter-spacing:.4px;white-space:nowrap}
+.p-live{background:rgba(255,255,255,.16);color:#c8f0c8}
+.p-local{background:rgba(255,255,255,.14);color:#ffd9a0}
+.when{font-size:12px;opacity:.68;margin-top:4px}
+.wrap{padding:14px 14px 0;max-width:620px;margin:0 auto}
+/* A chef reads this on a phone at the oven and on a tablet on the bench. The 620px column
+   left two thirds of a tablet empty, so above that the sections become columns instead —
+   special orders always full width, because that card is the one nobody may miss. */
+@media (min-width:900px){
+  .wrap{max-width:1120px;display:grid;grid-template-columns:1fr 1fr;gap:0 22px;align-items:start}
+  #sec-special{grid-column:1/-1}
+  #special{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  #special>.so{margin-bottom:0}
+}
+@media (min-width:1360px){
+  .wrap{max-width:1500px;grid-template-columns:1fr 1fr 1fr}
+  #special{grid-template-columns:1fr 1fr 1fr}
+}
+.sec{margin-bottom:20px}
+.sec-h{display:flex;align-items:baseline;gap:8px;margin-bottom:9px;padding:0 2px}
+.sec-h h2{font-size:15.5px;font-weight:900;color:var(--br);white-space:nowrap}
+.sec-h .hi{font-size:13px;color:var(--sub);font-weight:700}
+.sec-h .sp{flex:1}
+.sec-h .n{font-size:12px;font-weight:800;color:var(--sub)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:15px;padding:14px;margin-bottom:10px}
+.empty{background:var(--card);border:1px dashed var(--border);border-radius:15px;padding:24px 16px;text-align:center;color:var(--sub);font-size:13.5px;line-height:1.6}
+
+/* ── Special order card ── */
+.so{border:2px solid var(--gold);border-radius:16px;background:var(--card);margin-bottom:12px;overflow:hidden}
+.so.today{border-color:var(--rd)}
+.so-top{padding:12px 14px;background:#fff8ea;border-bottom:1px solid var(--border)}
+.so.today .so-top{background:#fdeceb}
+.so-when{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.badge{font-size:10.5px;font-weight:900;text-transform:uppercase;letter-spacing:.7px;padding:4px 9px;border-radius:20px;white-space:nowrap}
+.b-today{background:var(--rd);color:#fff}
+.b-tom{background:var(--gold);color:#fff}
+.b-shop{background:rgba(74,44,10,.1);color:var(--br)}
+.so-time{font-size:13px;font-weight:800;color:var(--br);margin-left:auto}
+.so-prod{font-size:19px;font-weight:900;color:var(--br);margin-top:9px;line-height:1.25}
+.so-body{padding:12px 14px}
+.msg{background:var(--cream);border:1.5px dashed var(--gold);border-radius:12px;padding:11px 13px;margin-bottom:12px}
+.msg-l{font-size:10px;font-weight:900;color:var(--gold);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+.msg-t{font-size:19px;font-weight:800;color:var(--br);line-height:1.3;text-wrap:pretty}
+.photo{width:100%;border-radius:12px;border:1px solid var(--border);display:block;margin-bottom:12px;background:var(--cream)}
+.photo-no{width:100%;border:1.5px dashed var(--border);border-radius:12px;padding:20px 14px;text-align:center;color:var(--sub);font-size:12.5px;line-height:1.5;margin-bottom:12px;background:var(--cream)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.f{background:var(--cream);border-radius:11px;padding:9px 11px}
+.f.wide{grid-column:1/-1}
+.f-l{font-size:9.5px;font-weight:900;color:var(--sub);text-transform:uppercase;letter-spacing:.7px}
+.f-v{font-size:15px;font-weight:800;color:var(--text);margin-top:2px;line-height:1.3}
+.f.eggless{background:#e8f4e8}
+.f.eggless .f-v{color:var(--gr)}
+.f.egg{background:#fdf0e8}
+.f.egg .f-v{color:var(--or)}
+.f.allergy{background:#fdecec;border:1px solid #f0c8c8}
+.f.allergy .f-l,.f.allergy .f-v{color:var(--rd)}
+.so-foot{padding:9px 14px;background:#faf6f0;border-top:1px solid var(--border);font-size:11.5px;color:var(--sub);display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── Make list ── */
+.tabs{display:flex;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:11px}
+.tab{flex:1;border:none;background:none;padding:10px 6px;border-radius:9px;font-size:13.5px;font-weight:800;font-family:inherit;color:var(--sub);cursor:pointer}
+.tab.on{background:var(--br);color:#fff}
+.mk{display:grid;grid-template-columns:1fr auto;gap:3px 12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+.mk:last-child{border-bottom:none}
+.mk-n{font-size:16px;font-weight:800;line-height:1.25}
+.mk-c{font-size:11.5px;color:var(--sub)}
+.mk-q{font-size:27px;font-weight:900;color:var(--br);font-variant-numeric:tabular-nums;text-align:right;line-height:1}
+.mk-for{grid-column:1/-1;font-size:11.5px;color:var(--sub);line-height:1.5;padding-top:2px}
+.shopblk{margin-bottom:10px}
+.shopblk-h{display:flex;align-items:center;gap:8px;padding:11px 14px;background:var(--br);color:#fff;border-radius:13px 13px 0 0;font-size:14.5px;font-weight:900}
+.shopblk-h .n{margin-left:auto;font-size:12px;opacity:.75;font-weight:700}
+.shopblk-b{background:var(--card);border:1px solid var(--border);border-top:none;border-radius:0 0 13px 13px;padding:4px 14px}
+
+/* ── Small lists ── */
+.row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);font-size:14.5px}
+.row:last-child{border-bottom:none}
+.row .q{margin-left:auto;font-weight:900;font-variant-numeric:tabular-nums;font-size:17px}
+.row.out .q{color:var(--rd)}
+.row.low .q{color:var(--or)}
+.who{display:flex;align-items:center;gap:9px;padding:9px 0;font-size:14.5px}
+.av{width:32px;height:32px;border-radius:50%;background:var(--br);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex:0 0 auto}
+.who-r{font-size:11.5px;color:var(--sub)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--gr);margin-left:auto;flex:0 0 auto}
+.btn{width:100%;border:1.5px solid var(--border);background:var(--card);color:var(--br);border-radius:12px;padding:13px;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer;margin-bottom:9px}
+.btn-g{background:var(--gold);border-color:var(--gold);color:#fff}
+.hint{font-size:11.5px;color:var(--sub);line-height:1.55;padding:0 2px 6px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--br);color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:700;z-index:90;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center}
+.toast.on{opacity:1}
+.tag-when{font-size:10px;font-weight:800;border-radius:6px;padding:2px 6px;margin-left:7px;vertical-align:middle;letter-spacing:.2px}
+/* Actions. Big enough for a floured thumb: nothing here is under 44px tall. */
+.act{display:flex;gap:8px;flex-wrap:wrap;padding:11px 14px;background:#faf6f0;border:1px solid var(--border);border-top:none;border-radius:0 0 13px 13px}
+.abtn{flex:1 1 auto;min-height:46px;border:1.5px solid var(--border);background:var(--card);color:var(--br);border-radius:11px;padding:0 14px;font-size:13.5px;font-weight:800;font-family:inherit;cursor:pointer}
+.abtn.go{background:var(--gr);border-color:var(--gr);color:#fff}
+.abtn.warm{background:var(--gold);border-color:var(--gold);color:#fff}
+.abtn.done{background:#e8f4e8;border-color:#bfe0bf;color:var(--gr)}
+.mk.ticked .mk-n{text-decoration:line-through;opacity:.5}
+.mk.ticked .mk-q{opacity:.35}
+.tick{width:46px;height:46px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);font-size:19px;cursor:pointer;flex:0 0 auto}
+.tick.on{background:var(--gr);border-color:var(--gr);color:#fff}
+.prog{font-size:12px;font-weight:800;color:var(--gr)}
+.mkrow{display:grid;grid-template-columns:1fr auto auto;gap:3px 12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.mkrow:last-child{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="top-r">
+    <h1>🍞 What to make</h1>
+    <div class="sp"></div>
+    <div class="pill p-local" id="sync-pill">checking…</div>
+    <span data-session-chip="dark"></span><span data-settings-btn></span>
+  </div>
+  <div class="when" id="when"></div>
+  <div class="when" id="keysrc" style="font-size:10.5px;opacity:.5"></div>
+</div>
+
+<div class="wrap">
+
+  <div class="sec" id="sec-special">
+    <div class="sec-h"><h2>⭐ Special orders</h2><div class="hi">स्पेशल ऑर्डर</div>
+      <div class="sp"></div><div class="n" id="n-special"></div></div>
+    <div id="special"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>Restock to make</h2><div class="hi">बनाना है</div>
+      <div class="sp"></div><div class="n" id="n-make"></div></div>
+    <div class="tabs">
+      <button class="tab on" id="tab-item" onclick="setView('item')">By cake</button>
+      <button class="tab" id="tab-shop" onclick="setView('shop')">By shop</button>
+    </div>
+    <div id="make"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>Running out at shops</h2><div class="hi">खत्म हो रहा है</div>
+      <div class="sp"></div><div class="n" id="n-low"></div></div>
+    <div id="low"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>Sold today</h2><div class="hi">आज बिका</div>
+      <div class="sp"></div><div class="n" id="n-sold"></div></div>
+    <div id="sold"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>On counter now</h2><div class="hi">काउंटर पर</div></div>
+    <div id="oncounter"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>Today so far</h2><div class="hi">आज तक</div></div>
+    <div id="tally"></div>
+    <div class="hint">Money, packing, dispatch and invoices stay on the kitchen manager's board. This screen is baking only.</div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="supabase-config.js?v=32"></script>
+<script src="sync.js?v=32"></script>
+<script src="session.js?v=32"></script>
+<script src="settings.js?v=32"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// CHEF SCREEN
+// ═══════════════════════════════════════════════════════════════════════════
+// A chef holding a phone at 6am wants three answers: what am I making, how many, and is
+// there a special order I cannot guess at. Everything else on the old board — packing
+// counts, shortfalls, invoice totals, rupee values — is the manager's job and is absent
+// here on purpose. No money appears anywhere on this screen.
+//
+// No money anywhere, still. But read-only was wrong: a chef who has finished a shop's tray
+// had no way to say so, so the manager kept walking to the oven to ask and the board showed
+// "Waiting" on work that was already done. The chef can now mark an item or a whole shop as
+// made, and start or finish a special order. Nothing else.
+Session.require(['chef','kitchen_manager','owner']);
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const dkey=d=>{const x=d||new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');};
+const td=()=>dkey();
+const tom=()=>{const d=new Date();d.setDate(d.getDate()+1);return dkey(d);};
+const ini=n=>String(n||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+let toastT;
+function toast(m,ms){const e=$('toast');e.textContent=m;e.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('on'),ms||2400);}
+
+let view=localStorage.getItem('cs9_chef_view')||'item';
+
+// ── Sync status, said plainly ────────────────────────────────────────────
+// A chef must be able to tell whether what they are reading is current. "Live" and
+// "this device only" are the two states that matter; the wording avoids the word sync.
+Sync.onStatus((s,detail)=>{
+  const p=$('sync-pill');
+  if(s==='live'){p.className='pill p-live';p.textContent='● Live';}
+  else if(s==='behind'){p.className='pill p-local';p.textContent='● Catching up';}
+  else if(s==='connecting'){p.className='pill p-local';p.textContent='connecting…';}
+  else{p.className='pill p-local';p.textContent='This device only';}
+  const k=$('keysrc');
+  k.textContent=Sync.keySource==='none'
+    ?'Not connected — open the setup link from the owner’s phone'
+    :'keys from '+Sync.keySource+(detail?' · '+detail:'');
+});
+
+// ── SPECIAL ORDERS ──────────────────────────────────────────────────────
+// Due today first, then tomorrow, each in needed-time order — a cake due at 11am has to
+// sit above one due at 7pm, because on a phone only two cards are visible at once.
+function renderSpecial(){
+  const all=Sync.list('special_orders')
+    .filter(o=>['booked','making','ready'].indexOf(o.status||'booked')>=0)
+    .filter(o=>o.needed_date===td()||o.needed_date===tom())
+    .sort((a,b)=>(a.needed_date||'').localeCompare(b.needed_date||'')||String(a.needed_time||'').localeCompare(String(b.needed_time||'')));
+  $('n-special').textContent=all.length?all.length+' due':'';
+  if(!all.length){
+    $('special').innerHTML='<div class="empty">No special orders due today or tomorrow.</div>';
+    return;
+  }
+  $('special').innerHTML=all.map(o=>{
+    const isToday=o.needed_date===td();
+    const f=[];
+    if(o.flavour)  f.push(['Flavour',o.flavour,'']);
+    if(o.weight)   f.push(['Weight / size',o.weight,'']);
+    if(o.shape)    f.push(['Shape',o.shape,'']);
+    f.push(['Egg',o.eggless?'EGGLESS':'With egg',o.eggless?'eggless':'egg']);
+    if(o.colour)   f.push(['Colour',o.colour,'']);
+    if(o.customer) f.push(['Customer',o.customer,'']);
+    if(o.allergy)  f.push(['⚠ Allergy',o.allergy,'allergy wide']);
+    if(o.notes)    f.push(['Note',o.notes,'wide']);
+    return '<div class="so'+(isToday?' today':'')+'">'
+      +'<div class="so-top"><div class="so-when">'
+        +'<span class="badge '+(isToday?'b-today">TODAY':'b-tom">TOMORROW')+'</span>'
+        +'<span class="badge b-shop">'+esc(o.shop_name||'')+'</span>'
+        +'<span class="so-time">'+esc(o.needed_time||'')+'</span>'
+      +'</div><div class="so-prod">'+esc(o.product||'Cake')+'</div></div>'
+      +'<div class="so-body">'
+        +(o.message_on?'<div class="msg"><div class="msg-l">Written on the cake</div><div class="msg-t">"'+esc(o.message_on)+'"</div></div>':'')
+        +(o.photo_url
+          ?'<img class="photo" src="'+esc(o.photo_url)+'" alt="Reference for '+esc(o.product||'cake')+'">'
+          :'<div class="photo-no">No reference photo on this order.<br>Ask the counter to add one.</div>')
+        +'<div class="grid">'+f.map(x=>'<div class="f '+x[2]+'"><div class="f-l">'+esc(x[0])+'</div><div class="f-v">'+esc(x[1])+'</div></div>').join('')+'</div>'
+      +'</div>'
+      +'<div class="so-foot"><span>Booked '+esc(o.taken_date||'')+'</span><span>·</span><span>by '+esc(o.taken_by||'counter')+'</span>'
+        +(o.status==='making'?'<span style="color:var(--or);font-weight:800">· being made</span>':'')
+        +(o.status==='ready'?'<span style="color:var(--gr);font-weight:800">· ready</span>':'')+'</div>'
+      +'<div class="act">'
+        +(o.status==='ready'
+          ? '<button class="abtn done" onclick="setSpecial(\''+o.id+'\',\'making\')">\u2713 Ready \u2014 tap to undo</button>'
+          : '<button class="abtn '+(o.status==='making'?'':'warm')+'" onclick="setSpecial(\''+o.id+'\',\''+(o.status==='making'?'booked':'making')+'\')">'
+            +(o.status==='making'?'Stop \u2014 not started':'Start baking')+'</button>'
+            +'<button class="abtn go" onclick="setSpecial(\''+o.id+'\',\'ready\')">Mark ready</button>')
+      +'</div>'
+    +'</div>';
+  }).join('');
+}
+
+// ── RESTOCK TO MAKE ─────────────────────────────────────────────────────
+// A restock is filed under the date the shop needs it, and a shop placing an order in the
+// afternoon is almost always ordering for TOMORROW. Filtering to today alone meant the chef
+// screen stayed empty while the order sat in the table — the request had synced perfectly
+// and there was nothing on any screen to say so.
+//
+// So: everything still open, up to and including tomorrow. Anything older than today is
+// overdue and must be MORE visible, never less.
+function openReqs(){
+  const limit=tom();
+  return Sync.list('requests')
+    .filter(r=>r.status!=='dispatched'&&String(r.date||'')<=limit)
+    .sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||String(a.time||'').localeCompare(String(b.time||'')));
+}
+// "for tomorrow" earns a place on screen; "for today" does not need saying twice.
+function whenTag(d){
+  if(d===td())return '';
+  if(d===tom())return '<span class="tag-when" style="background:#eef4ff;color:#24406e">for tomorrow</span>';
+  return '<span class="tag-when" style="background:#fdeaea;color:#8a1c1c">overdue \u00b7 was for '+esc(d||'')+'</span>';
+}
+
+function setView(v){
+  view=v;localStorage.setItem('cs9_chef_view',v);
+  $('tab-item').classList.toggle('on',v==='item');
+  $('tab-shop').classList.toggle('on',v==='shop');
+  renderMake();
+}
+
+// Marking made. Stored on the request row itself — items[].made and status — so the kitchen
+// manager's board and the owner's screen see the same truth with no second table.
+function itemsOf(r){return (r.items||[]).map(i=>Object.assign({},i));}
+function saveReq(r){Sync.put('requests',r);renderAll();}
+
+function tickItem(reqId,name){
+  const r=Sync.list('requests').find(x=>String(x.id)===String(reqId));
+  if(!r)return;
+  const items=itemsOf(r);
+  const it=items.find(i=>i.name===name);
+  if(!it)return;
+  it.made=(it.made&&it.made>=(it.ask||0))?0:(it.ask||0);
+  const all=items.length&&items.every(i=>(i.made||0)>=(i.ask||0));
+  saveReq(Object.assign({},r,{items:items,status:all?'made':(r.status==='made'?'new':r.status||'new')}));
+  toast(it.made?'\u2713 '+it.name:'Unticked '+it.name,1500);
+}
+
+function shopDone(reqId){
+  const r=Sync.list('requests').find(x=>String(x.id)===String(reqId));
+  if(!r)return;
+  const already=r.status==='made';
+  const items=itemsOf(r).map(i=>Object.assign({},i,{made:already?0:(i.ask||0)}));
+  saveReq(Object.assign({},r,{items:items,status:already?'new':'made'}));
+  if(!already)Sync.put('notifications',{id:'ntf-made-'+r.id,kind:'made',shop_id:r.shop_id,
+    for_role:'kitchen_manager',title:'Baked and ready to pack',
+    body:(r.shop_name||'A shop')+'\u2019s order is made \u2014 ready to pack.'});
+  toast(already?'Marked not done':'\u2713 '+(r.shop_name||'Shop')+' \u2014 ready to pack',2200);
+}
+
+function setSpecial(id,status){
+  const o=Sync.list('special_orders').find(x=>String(x.id)===String(id));
+  if(!o)return;
+  Sync.put('special_orders',Object.assign({},o,{status:status}));
+  if(status==='ready')Sync.put('notifications',{id:'ntf-so-'+id,kind:'order_ready',shop_id:o.shop_id,
+    for_role:'counter',title:'Special order ready',
+    body:(o.product||'Order')+' for '+(o.customer||'customer')+' is ready at the kitchen.'});
+  toast(status==='making'?'Started baking':'\u2713 Ready',2000);
+  renderAll();
+}
+
+function renderMake(){
+  const reqs=openReqs();
+  const total=reqs.reduce((a,r)=>a+(r.items||[]).reduce((b,i)=>b+(i.ask||0),0),0);
+  const made=reqs.reduce((a,r)=>a+(r.items||[]).reduce((b,i)=>b+Math.min(i.made||0,i.ask||0),0),0);
+  const shopsDone=reqs.filter(r=>r.status==='made').length;
+  $('n-make').textContent=total?(made?made+' of '+total+' made':total+' pieces')
+    +(shopsDone?' · '+shopsDone+'/'+reqs.length+' shops done':''):'';
+  if(!reqs.length){
+    $('make').innerHTML='<div class="empty">No shop has asked for anything yet.<br>Restock orders sent from a counter land here on their own, for today or tomorrow.</div>';
+    return;
+  }
+  if(view==='item'){
+    // One row per cake, totalled across shops — the question actually asked at 6am.
+    const agg={};
+    reqs.forEach(r=>(r.items||[]).forEach(i=>{
+      const a=agg[i.name]=agg[i.name]||{name:i.name,cat:i.cat||'',qty:0,made:0,for:[],when:new Set()};
+      a.qty+=i.ask||0;
+      a.made+=Math.min(i.made||0,i.ask||0);
+      a.for.push(String(r.shop_name||'').split(' ')[0]+' '+(i.ask||0)+(r.date===tom()?' (tom)':''));
+      a.when.add(r.date);
+    }));
+    const rows=Object.values(agg).sort((a,b)=>b.qty-a.qty);
+    $('make').innerHTML='<div class="card">'+rows.map(a=>{
+      const left=Math.max(0,a.qty-a.made);
+      return '<div class="mk'+(left?'':' ticked')+'">'
+      +'<div><div class="mk-n">'+esc(a.name)+'</div><div class="mk-c">'+esc(a.cat)
+        +(a.made?' · <span class="prog">'+a.made+' made, '+left+' left</span>':'')+'</div></div>'
+      +'<div class="mk-q">'+a.qty+'</div>'
+      +'<div class="mk-for">for '+esc(a.for.join(' · '))+'</div></div>';}).join('')+'</div>'
+      +'<div class="hint">Tick items off in <b>By shop</b> \u2014 that is where the kitchen manager reads what is ready to pack.</div>';
+  }else{
+    $('make').innerHTML=reqs.map(r=>{
+      const items=(r.items||[]).slice().sort((a,b)=>(b.ask||0)-(a.ask||0));
+      const n=items.reduce((a,i)=>a+(i.ask||0),0);
+      const doneN=items.filter(i=>(i.made||0)>=(i.ask||0)).length;
+      const all=r.status==='made';
+      return '<div class="shopblk"><div class="shopblk-h">🏪 '+esc(r.shop_name||'')+whenTag(r.date)
+        +'<span class="n">'+(all?'\u2713 made':doneN+' of '+items.length+' done')+' · '+n+' pieces</span></div>'
+        +'<div class="shopblk-b">'+items.map(i=>{
+          const on=(i.made||0)>=(i.ask||0);
+          return '<div class="mkrow'+(on?' ticked':'')+'">'
+          +'<div><div class="mk-n">'+esc(i.name)+'</div><div class="mk-c">'+esc(i.cat||'')+'</div></div>'
+          +'<div class="mk-q">'+(i.ask||0)+'</div>'
+          +'<button class="tick'+(on?' on':'')+'" onclick="tickItem(\''+r.id+'\',\''+esc(String(i.name).replace(/'/g,"\\'"))+'\')">'+(on?'\u2713':'')+'</button>'
+          +'</div>';}).join('')+'</div>'
+        +'<div class="act"><button class="abtn '+(all?'done':'go')+'" onclick="shopDone(\''+r.id+'\')">'
+        +(all?'\u2713 Made \u2014 tap to undo':'Mark this shop\u2019s order made')+'</button></div></div>';
+    }).join('');
+  }
+}
+
+// ── RUNNING OUT ─────────────────────────────────────────────────────────
+function renderLow(){
+  const rows=Sync.list('stock')
+    .filter(s=>(s.qty||0)<=(s.low_at||3))
+    .sort((a,b)=>(a.qty||0)-(b.qty||0)).slice(0,14);
+  $('n-low').textContent=rows.length?rows.length+' items':'';
+  if(!rows.length){$('low').innerHTML='<div class="empty">Nothing low right now.</div>';return;}
+  $('low').innerHTML='<div class="card">'+rows.map(s=>{
+    const out=(s.qty||0)<=0;
+    return '<div class="row '+(out?'out':'low')+'">'
+      +'<div><div style="font-weight:700">'+esc(s.name)+'</div>'
+      +'<div class="mk-c">'+esc(shopName(s.shop_id))+'</div></div>'
+      +'<div class="q">'+(out?'OUT':s.qty)+'</div></div>';
+  }).join('')+'</div>';
+}
+
+// ── SOLD TODAY, QUANTITIES ONLY ─────────────────────────────────────────
+// Deliberately no rupees. The chef judges the day by how many cakes moved, and putting
+// takings on a kitchen phone starts conversations that are not the chef's business.
+function renderSold(){
+  const agg={};
+  Sync.list('cm_sales').filter(s=>s.date===td()).forEach(s=>(s.items||[]).forEach(i=>{
+    agg[i.name]=(agg[i.name]||0)+(i.qty||0);
+  }));
+  const rows=Object.entries(agg).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const total=rows.reduce((a,r)=>a+r[1],0);
+  $('n-sold').textContent=total?total+' pieces':'';
+  if(!rows.length){$('sold').innerHTML='<div class="empty">Nothing sold yet today.</div>';return;}
+  $('sold').innerHTML='<div class="card">'+rows.map(r=>'<div class="row">'
+    +'<div style="font-weight:700">'+esc(r[0])+'</div><div class="q">'+r[1]+'</div></div>').join('')+'</div>';
+}
+
+// ── WHO IS ON COUNTER ───────────────────────────────────────────────────
+function renderCounter(){
+  const rows=Sync.list('punches').filter(p=>p.date===td()&&p.in_at&&!p.out_at);
+  if(!rows.length){$('oncounter').innerHTML='<div class="empty">Nobody punched in yet.</div>';return;}
+  $('oncounter').innerHTML='<div class="card">'+rows.map(p=>'<div class="who">'
+    +'<div class="av">'+ini(p.staff_name)+'</div>'
+    +'<div><div style="font-weight:800">'+esc(p.staff_name)+'</div>'
+    +'<div class="who-r">'+esc(shopName(p.shop_id))+' · in at '+esc(String(p.in_at).slice(11,16))+'</div></div>'
+    +'<div class="dot"></div></div>').join('')+'</div>';
+}
+
+// One source for shop names, in session.js. A second list here is how one shop's history
+// ends up split in two on every report downstream.
+const shopName=id=>Session.shopName(id);
+
+// Product list, used to price what the shops ask for.
+const PK='cs7_p';
+const products=()=>{
+  try{return (JSON.parse(localStorage.getItem(PK))||[]).filter(p=>p&&p.n&&p.p>0);}
+  catch(e){return[];}
+};
+
+// ── BOOT ────────────────────────────────────────────────────────────────
+// The day's own work, which no other screen shows the chef: trays finished, specials out,
+// and what is still standing between them and going home.
+function renderTally(){
+  const reqs=Sync.list('requests').filter(r=>String(r.date||'')<=tom());
+  const madeShops=reqs.filter(r=>r.status==='made').length;
+  const sentShops=reqs.filter(r=>r.status==='dispatched'&&r.date===td()).length;
+  const specials=Sync.list('special_orders').filter(o=>o.needed_date===td());
+  const soReady=specials.filter(o=>o.status==='ready').length;
+  const openPieces=openReqs().reduce((a,r)=>a+(r.items||[]).reduce((b,i)=>b+Math.max(0,(i.ask||0)-(i.made||0)),0),0);
+  $('tally').innerHTML='<div class="card">'
+    +'<div class="row"><span>Shops baked and ready to pack</span><span class="q">'+madeShops+'</span></div>'
+    +'<div class="row"><span>Shops already dispatched today</span><span class="q">'+sentShops+'</span></div>'
+    +'<div class="row"><span>Special orders due today</span><span class="q">'+specials.length+'</span></div>'
+    +'<div class="row"><span>\u2014 of those, ready</span><span class="q">'+soReady+'</span></div>'
+    +'<div class="row'+(openPieces?' low':'')+'"><span>Pieces still to bake</span><span class="q">'+openPieces+'</span></div>'
+    +'</div>';
+}
+function renderAll(){renderSpecial();renderMake();renderLow();renderSold();renderCounter();renderTally();}
+function clock(){
+  $('when').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})
+    +'  ·  '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+}
+setView(view);
+clock();setInterval(clock,30000);
+renderAll();
+// Anything arriving from another device, or another tab, repaints without the chef
+// touching the phone — a request raised at a shop appears while it is in their hand.
+['special_orders','requests','stock','sales','punches'].forEach(t=>Sync.subscribe(t,renderAll));
+Session.chip();
+</script>
+</body>
+</html>

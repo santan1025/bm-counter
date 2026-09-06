@@ -1,0 +1,46 @@
+/*
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: geolocation=(), microphone=(), camera=(self), payment=(), usb=()
+  X-Robots-Tag: noindex, nofollow
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://esm.sh; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://lh3.googleusercontent.com; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://unpkg.com https://esm.sh https://www.googleapis.com https://oauth2.googleapis.com; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; object-src 'none'
+
+# Google, added for sign-in and Drive backup:
+#   connect-src www.googleapis.com     the Drive API — backups fail silently without it
+#   img-src lh3.googleusercontent.com  profile photos, the only image Google serves us
+# The sign-in itself is a full page trip to accounts.google.com and back, which is an
+# ordinary navigation and needs no permission here. Nothing is framed, so frame-src stays
+# shut — that is deliberate: an OAuth screen inside an iframe is how consent gets faked.
+
+# The policy above is the file that broke the connection once already. Three things it MUST
+# allow, or the app runs on each phone alone with no error a shop could act on:
+#   script-src  cdn.jsdelivr.net, unpkg.com, esm.sh   the Supabase client library (three
+#               sources on purpose: one blocked CDN must not take the shop offline)
+#   connect-src https://*.supabase.co      reads and writes
+#   connect-src wss://*.supabase.co        realtime — the whole point of the system
+# Everything else stays shut.
+
+/sw.js
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache
+
+/login.html
+  Cache-Control: no-cache
+
+# The app's own scripts, revalidated every load. A phone quietly running last week's sync.js
+# is indistinguishable from a broken one.
+/sync.js
+  Cache-Control: no-cache
+
+/session.js
+  Cache-Control: no-cache
+
+/google.js
+  Cache-Control: no-cache
+
+/supabase-config.js
+  Cache-Control: no-cache

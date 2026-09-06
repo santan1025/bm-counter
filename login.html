@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#fdf6ec">
+<meta name="robots" content="noindex,nofollow">
+<title>Sign in — BM Ventures</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--br:#4a2c0a;--gold:#c8841a;--cream:#fdf6ec;--gr:#1a6b1a;--rd:#b22222;--sub:#8a7f70;--border:#e0d4c4}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--cream);color:#1a1a1a;min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:26px 22px;font-size:16px}
+.wrap{width:100%;max-width:400px;margin:0 auto}
+.shop{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:11px 14px;margin-bottom:24px}
+.shop-i{width:34px;height:34px;border-radius:9px;background:var(--br);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;flex:0 0 auto}
+.shop-n{font-size:14px;font-weight:800;color:var(--br);line-height:1.3}
+.shop-s{font-size:11.5px;color:var(--sub)}
+h1{font-size:29px;font-weight:900;color:var(--br);letter-spacing:-.6px;line-height:1.1}
+.sub{font-size:14px;color:var(--sub);margin:8px 0 24px;line-height:1.5}
+label{display:block;font-size:11px;font-weight:800;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.f{margin-bottom:15px}
+input{width:100%;padding:15px 16px;border:1.5px solid var(--border);border-radius:13px;font-size:17px;font-weight:700;font-family:inherit;background:#fff;color:#1a1a1a;-moz-appearance:textfield}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,132,26,.14)}
+input::placeholder{font-weight:500;color:#c3b8a8}
+.who{font-size:13px;font-weight:700;color:var(--gr);margin:-7px 0 15px;min-height:18px;line-height:1.45}
+.who.bad{color:var(--rd)}
+.go{width:100%;background:var(--br);color:#fff;border:none;border-radius:13px;padding:17px;font-size:16.5px;font-weight:800;font-family:inherit;cursor:pointer}
+.go[disabled]{opacity:.3}
+.note{font-size:12px;color:var(--sub);text-align:center;margin-top:13px;line-height:1.55}
+.tests{background:#fff;border:1px dashed var(--gold);border-radius:13px;padding:12px 14px;margin-top:20px}
+.tests-t{font-size:10.5px;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;display:flex;justify-content:space-between}
+.tr{display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:5px 0;cursor:pointer;border-bottom:1px solid #f2ece2}
+.tr:last-child{border-bottom:none}
+.tr b{font-weight:700}
+.tr span:last-child{color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tr small{color:var(--sub);font-weight:500}
+
+/* Tester role menu */
+.menu h1{margin-bottom:6px}
+.role{display:flex;align-items:center;gap:13px;background:#fff;border:1.5px solid var(--border);border-radius:15px;padding:15px;margin-bottom:10px;cursor:pointer;text-decoration:none;color:inherit}
+.role:hover{border-color:var(--gold)}
+.role-i{width:44px;height:44px;border-radius:12px;background:var(--cream);display:flex;align-items:center;justify-content:center;font-size:21px;flex:0 0 auto}
+.role-n{font-size:15.5px;font-weight:800;color:var(--br);line-height:1.25}
+.role-d{font-size:12px;color:var(--sub);margin-top:2px;line-height:1.4}
+.role-x{margin-left:auto;color:var(--sub);font-size:19px}
+.back{background:none;border:none;color:var(--sub);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;padding:10px 0;text-decoration:underline}
+.al{background:#fff8e8;border:1px solid #e8d5a8;color:#7a5a10;border-radius:12px;padding:11px 13px;font-size:12.5px;line-height:1.55;margin-bottom:18px}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="signin">
+  <div class="shop">
+    <div class="shop-i" id="logo">🏪</div>
+    <div><div class="shop-n" id="dev-shop">This device</div><div class="shop-s" id="dev-sub">Sign in to start</div></div>
+  </div>
+  <div id="msg"></div>
+  <div id="fault"></div>
+  <h1>Sign in</h1>
+  <div class="sub">Your phone number and PIN. Signing in punches you in for the day.</div>
+  <div class="f">
+    <label>Phone number</label>
+    <input id="ph" type="number" inputmode="numeric" placeholder="00000 00000" oninput="lookup()">
+  </div>
+  <div class="who" id="who"></div>
+  <div id="pick" style="display:none;margin-bottom:15px"></div>
+  <div class="f">
+    <label id="pin-lab">PIN</label>
+    <input id="pin" type="password" inputmode="numeric" maxlength="4" placeholder="4 digits" oninput="sync()" onkeydown="if(event.key==='Enter')doSignIn()">
+  </div>
+  <div class="f" id="pin2-f" style="display:none">
+    <label>Type it again</label>
+    <input id="pin2" type="password" inputmode="numeric" maxlength="4" placeholder="4 digits" oninput="sync()" onkeydown="if(event.key==='Enter')doSignIn()">
+  </div>
+  <button class="go" id="go" disabled onclick="doSignIn()">Sign in &amp; punch in</button>
+  <div class="note" id="note">Punch out when you leave. Auto punch-out at midnight close.</div>
+
+  <div id="gwrap" style="display:none;margin-top:18px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:13px">
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+      <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)">or</div>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>
+    <button id="gbtn" onclick="doGoogle()" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;background:#fff;color:var(--br);border:1.5px solid var(--border);border-radius:15px;padding:15px;font:800 15px/1 inherit;font-family:inherit;cursor:pointer">
+      <svg style="width:18px;height:18px;flex:0 0 auto" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.5 30.2 0 24 0 14.6 0 6.5 5.4 2.5 13.2l7.9 6.1C12.3 13.2 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-2.8-.4-4.1H24v8.4h12.5c-.3 2.1-1.6 5.2-4.6 7.3l7.6 5.9c4.5-4.2 6.6-10.3 6.6-17.5z"/><path fill="#FBBC05" d="M10.4 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.5 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.5-2 15.5-5.9l-7.6-5.9c-2 1.4-4.7 2.4-7.9 2.4-6.3 0-11.7-3.7-13.6-9.9l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+      <span id="gbtn-t">Continue with Google</span>
+    </button>
+    <div class="note" style="margin-top:9px">For managers whose Google account has been added by the owner. Staff sign in with a PIN.</div>
+  </div>
+  <div class="tests" id="share">
+    <div class="tests-t"><span>Other phones</span><a href="check.html" style="color:var(--gold);font-weight:800;text-decoration:underline;font-size:10.5px">Check this phone</a></div>
+    <div id="share-body" style="font-size:12px;color:var(--sub);line-height:1.55"></div>
+  </div>
+
+</div>
+
+<div class="wrap menu" id="menu" style="display:none">
+  <h1>All screens</h1>
+  <div class="sub" id="menu-sub">Open any role to check its screens.</div>
+  <div id="roles"></div>
+  <button class="back" onclick="Session.signOut(false)">Sign out</button>
+</div>
+
+<script src="supabase-config.js?v=32"></script>
+<script src="sync.js?v=32"></script>
+<script src="session.js?v=32"></script>
+<script src="google.js?v=32"></script>
+<script>
+// The entry point. Every screen redirects here when nobody is signed in, and this file
+// decides where a person lands — counter staff never see a kitchen screen, and the tester
+// gets a menu of all five so each one can be checked without six logins.
+const $=id=>document.getElementById(id);
+const qs=new URLSearchParams(location.search);
+// Staff names and role labels are typed by an owner, so they are escaped before they reach
+// innerHTML anywhere on this page.
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const DESC={
+  counter:'Today\u2019s takings, sale screen, stock, expenses',
+  chef:'What to make, for which shop, and special orders',
+  kitchen_manager:'Requests, packing, dispatch and invoices',
+  owner:'Both shops, staff hours, the day\u2019s numbers'
+};
+
+// setup holds the account whose PIN is being created, when this is a first sign-in.
+let setup=null;
+
+const DEFAULT_NOTE='Punch out when you leave. Auto punch-out at midnight close.';
+
+function shopHeader(){
+  const dev=Session.deviceShop();
+  $('dev-shop').textContent=dev?Session.shopName(dev):'BM Ventures';
+  $('dev-sub').textContent=dev?'This phone belongs to this shop'
+    :'This phone learns its shop from the first counter sign-in';
+}
+
+// The number is the only thing typed before anything is known. Everything below reacts to
+// it: whose number it is, whether a PIN exists yet, and — for a number holding more than
+// one role — nothing at all, because the PIN is what selects the role and announcing the
+// other roles would defeat hiding them.
+function lookup(){
+  const v=$('ph').value.trim(), el=$('who');
+  el.className='who';
+  setup=null;$('pick').style.display='none';$('pin2-f').style.display='none';
+  const d=Session.describe(v);
+  if(d){
+    el.textContent=d.name;
+    if(d.needsSetup.length){
+      // Creating a PIN is only offered once waiting for the shop's real roster is OVER.
+      // Until then the list is the built-in fallback, which has no PINs on it — so "first
+      // sign-in, choose a PIN" would be a lie to someone who already has one. Once waiting
+      // ends, setup proceeds even if the roster could not be read: the reason is shown
+      // instead, because a till that cannot be opened is not an acceptable safe state.
+      if(Session.rosterProvisional&&Session.rosterProvisional()){
+        $('pin-lab').textContent='PIN';
+        $('go').textContent='Sign in & punch in';
+        el.textContent=d.name+' — checking your account…';
+        $('note').textContent='Looking up this number. One moment.';
+      }
+      else{
+        // At least one login on this number already has a PIN, so the person holding the
+        // phone is NOT necessarily setting up. Forcing the create-PIN screen locked the
+        // Owner out of their own login: the PIN was right and there was nowhere to type it.
+        // Setup is offered as a choice instead, never imposed.
+        const ready=(Session.accountsFor(v)||[]).filter(a=>a.pin_hash);
+        if(!ready.length){
+          if(d.needsSetup.length===1)startSetup(d.needsSetup[0]);
+          else offerSetup(d.needsSetup);
+        }else{
+          $('pin-lab').textContent='PIN';
+          $('go').textContent='Sign in & punch in';
+          $('note').textContent=DEFAULT_NOTE;
+          offerOptionalSetup(d.needsSetup);
+        }
+      }
+    }else{
+      $('pin-lab').textContent='PIN';
+      $('go').textContent='Sign in & punch in';
+      $('note').textContent=DEFAULT_NOTE;
+    }
+  }
+  else if(v.length>=10){el.textContent='No staff with this number';el.className='who bad';$('note').textContent=DEFAULT_NOTE;}
+  else {el.textContent='';$('note').textContent=DEFAULT_NOTE;}
+  renderFault();
+  sync();
+}
+
+// Once waiting is over, say WHY the roster is the local one — a missing table or a blocked
+// read is a thing someone can go and fix, and neither should look like a hung spinner.
+function renderFault(){
+  const box=$('fault');
+  const why=Session.rosterFault&&Session.rosterFault();
+  if(!why){box.innerHTML='';return;}
+  box.innerHTML='<div class="al">'+why+'</div>';
+}
+
+// Sign in normally, or set up one of the logins that has no PIN yet. Both doors visible.
+function offerOptionalSetup(list){
+  if(!list.length){$('pick').style.display='none';return;}
+  $('pick').style.display='block';
+  $('pick').innerHTML='<div class="al" style="margin-bottom:10px">Signing in? Type your PIN above. '
+    +'Or set up a login on this number that has no PIN yet:</div>'
+    +list.map(a=>'<div class="role" style="padding:12px" onclick="startSetup(\''+a.id+'\')">'
+      +'<div class="role-i" style="width:36px;height:36px;font-size:17px">'+((Session.roles[a.role]||{}).icon||'')+'</div>'
+      +'<div><div class="role-n">Set up '+esc((Session.roles[a.role]||{}).label||a.role)+'</div>'
+      +'<div class="role-d">'+esc(a.name||'')+' \u00b7 no PIN yet</div></div>'
+      +'<div class="role-x">\u203a</div></div>').join('');
+}
+
+function cancelSetup(){
+  setup=null;
+  $('pin2-f').style.display='none';
+  $('pin').value='';$('pin2').value='';
+  $('pin-lab').textContent='PIN';
+  $('go').textContent='Sign in & punch in';
+  $('note').textContent=DEFAULT_NOTE;
+  $('msg').innerHTML='';
+  lookup();
+}
+
+function offerSetup(list){
+  $('pick').style.display='block';
+  $('pick').innerHTML='<div class="al" style="margin-bottom:10px">This number has more than one login. Choose the one you are setting up — each gets its own PIN, and afterwards the PIN alone decides which screen opens.</div>'
+    +list.map(a=>'<div class="role" style="padding:12px" onclick="startSetup(\''+a.id+'\')">'
+      +'<div class="role-i" style="width:36px;height:36px;font-size:17px">'+(Session.roles[a.role]||{}).icon+'</div>'
+      +'<div><div class="role-n" style="font-size:14px">'+(Session.roles[a.role]||{}).label+'</div>'
+      +'<div class="role-d">'+(a.shop==='*'?'All shops':Session.shopName(a.shop))+'</div></div>'
+      +'<div class="role-x">\u203a</div></div>').join('');
+}
+
+function startSetup(a){
+  const acct=typeof a==='string'?Session.accountsFor($('ph').value).find(x=>x.id===a):a;
+  if(!acct)return;
+  setup=acct;
+  $('pick').style.display='none';
+  $('pin-lab').textContent='Choose a PIN for your '+((Session.roles[acct.role]||{}).label||'')+' login';
+  $('pin2-f').style.display='block';
+  $('pin').value='';$('pin2').value='';
+  // Whoever lands here by accident must be able to leave. Without this the only way out
+  // of setup was to reload the page.
+  $('pick').style.display='block';
+  $('pick').innerHTML='<div class="al">Setting up the <b>'+esc((Session.roles[acct.role]||{}).label||acct.role)
+    +'</b> login for '+esc(acct.name||'')+'.<br><br>'
+    +'<a href="#" onclick="cancelSetup();return false;" style="color:var(--gold)">I already have a PIN \u2014 let me sign in</a></div>';
+  $('go').textContent='Create PIN & sign in';
+  $('note').textContent='Four digits, and yours alone. Nobody else can see it — if you forget it, it gets reset, not recovered.';
+  $('who').textContent=acct.name;
+  $('who').className='who';
+  $('pin').focus();
+  sync();
+}
+
+function sync(){
+  const ok=$('pin').value.length===4 && (!setup || $('pin2').value.length===4);
+  const waiting=!setup&&Session.rosterProvisional&&Session.rosterProvisional()&&(Session.describe($('ph').value)||{needsSetup:[]}).needsSetup.length>0;
+  $('go').disabled=!(Session.describe($('ph').value)&&ok)||!!waiting;
+}
+
+function fail(why){
+  $('pin').value='';if(setup)$('pin2').value='';
+  sync();
+  const el=$('who');el.textContent=why;el.className='who bad';
+}
+
+function doSignIn(){
+  const ph=$('ph').value, pin=$('pin').value;
+  if(setup){
+    if(pin!==$('pin2').value){fail('The two PINs do not match.');return;}
+    const r=Session.setPin(setup.id,pin);
+    if(!r.ok){fail(r.why);return;}
+    setup=null;$('pin2-f').style.display='none';
+  }
+  const r=Session.signIn(ph,pin);
+  if(!r.ok){
+    // A number whose PIN was never set: the wrong-PIN message would be a lie.
+    if(r.setup&&r.setup.length){startSetup(r.setup[0]);fail(r.why);return;}
+    fail(r.why);return;
+  }
+  const next=qs.get('next');
+  location.href=(next&&next.indexOf('login')<0)?next:Session.landingFor(r.session.role);
+}
+
+function showMenu(){
+  $('signin').style.display='none';
+  $('menu').style.display='block';
+  const sess=Session.current();
+  $('menu-sub').textContent='Signed in as '+(sess?sess.name:'')+'.';
+  $('roles').innerHTML=Object.keys(Session.roles).map(r=>{
+    const R=Session.roles[r];
+    return '<a class="role" href="'+R.page+'"><div class="role-i">'+R.icon+'</div>'
+      +'<div><div class="role-n">'+R.label+'</div><div class="role-d">'+DESC[r]+'</div></div>'
+      +'<div class="role-x">\u203a</div></a>';
+  }).join('')
+    +'<a class="role" href="backup.html"><div class="role-i">☁️</div>'
+    +'<div><div class="role-n">Backup &amp; Google</div>'
+    +'<div class="role-d">Copy the shop into your own Google Drive, and choose who signs in with Google</div></div>'
+    +'<div class="role-x">›</div></a>';
+}
+
+// Long-press the logo to mark this phone as yours. It reveals the owner and kitchen-manager
+// logins on this device only — it does not grant them; the PIN still has to be right. Held
+// in storage so it survives the app being closed, and lifted by pressing again.
+(function trustGesture(){
+  const el=$('logo');let t=null;
+  const start=()=>{t=setTimeout(()=>{
+    const on=Session.trust(!Session.trusted()?true:false);
+    el.textContent=on?'🔓':'🏪';
+    lookup();
+    alert(on?'This phone is now marked as yours. Your owner and kitchen logins will be offered here.'
+            :'Hidden logins are no longer offered on this phone.');
+  },1400);};
+  const stop=()=>clearTimeout(t);
+  ['mousedown','touchstart'].forEach(e=>el.addEventListener(e,start,{passive:true}));
+  ['mouseup','mouseleave','touchend','touchcancel','touchmove'].forEach(e=>el.addEventListener(e,stop,{passive:true}));
+  if(Session.trusted())el.textContent='🔓';
+})();
+
+// Connection state, in words. The keys ship with the app, so "not connected" now means a
+// real fault — a paused project, a wrong key, no data — rather than an unfinished setup.
+function renderShare(){
+  const b=$('share-body');
+  const paint=(s,detail)=>{
+    if(s==='setup'){
+      // Connected, but a table is missing. Saying "Connected" alone would be a half-truth,
+      // and a bare "5 waiting" reads like lost data.
+      b.innerHTML='<b style="color:var(--gold)">\u25cf Connected, one step left</b><br>'+(detail||'')
+        +'<br><span style="color:var(--sub)">Sales, requests and dispatches are syncing normally. PINs stay on each phone until this is done.</span>';
+    }else if(s==='live'||s==='behind'){
+      b.innerHTML='<b style="color:var(--gr)">\u25cf Connected</b> \u2014 every shop and the kitchen see the same day.'
+        +(detail?'<br>'+detail:'');
+    }else if(s==='connecting'){
+      b.innerHTML='Connecting\u2026';
+    }else{
+      b.innerHTML='<b style="color:var(--rd)">\u25cb Not connected</b> \u2014 anything done on this phone stays on it.'
+        +(detail?'<br>'+detail:'')
+        +'<br><span id="rt" style="color:var(--gold);text-decoration:underline;cursor:pointer">Try again</span>';
+      const r=$('rt');if(r)r.onclick=()=>location.reload();
+    }
+  };
+  Sync.onStatus(paint);
+  // The roster arrives a moment after the page does. Re-reading the typed number when the
+  // connection settles turns "checking your account" into the real answer without a reload.
+  Sync.onStatus(function(s){
+    if((s==='live'||s==='behind'||s==='setup'||s==='local')&&$('ph').value.trim())lookup();
+  });
+}
+
+(function boot(){
+  shopHeader();renderShare();
+
+  const denied=qs.get('denied');
+  if(denied)$('msg').innerHTML='<div class="al">That screen is not for the '
+    +((Session.roles[denied]||{}).label||denied)+' role. Sign in as someone else to open it.</div>';
+
+  const sess=Session.current();
+  if(!sess)return;
+  if(qs.get('menu')){showMenu();return;}
+  if(!denied&&!qs.get('stay'))location.replace(Session.landingFor(sess.role));
+})();
+
+// ── Google, the manager's door ──────────────────────────────────────────────
+// A second way in, not a replacement. Counter phones on a shop floor are shared and often
+// signed into nobody's Google account, so the number-and-PIN door stays exactly as it was;
+// this one exists for managers and the owner, who each have their own phone.
+//
+// It grants nothing by itself. Google proves an email address and stops there — the email
+// must already be on a staff row, put there by an owner on the Backup screen. An unknown
+// Google account gets a sentence telling it who to ask, and no way in.
+(function(){
+  const back=/access_token|[?&]code=|[?&]error=/.test(location.hash+location.search);
+  const show=()=>{
+    // The button appears once the owner has attached a first email, so a shop that never
+    // uses Google never sees a button that would only ever refuse them.
+    if(back||(Session.anyEmailSet&&Session.anyEmailSet())||Session.trusted())
+      $('gwrap').style.display='block';
+  };
+  show();
+  if(window.Sync)Sync.onStatus(()=>show());
+
+  if(!window.GAuth)return;
+
+  (async function(){
+    if(back){$('gbtn-t').textContent='Checking your Google account…';$('gbtn').disabled=true;}
+    const r=await GAuth.boot();
+    if(!r.ok){
+      if(back)fail(r.why);
+      $('gbtn-t').textContent='Continue with Google';$('gbtn').disabled=false;
+      return;
+    }
+    if(!r.user){$('gbtn-t').textContent='Continue with Google';$('gbtn').disabled=false;return;}
+
+    // The roster decides. Waiting for it to arrive matters here: a match against a
+    // half-read roster would refuse the owner on a slow morning connection.
+    if(Session.rosterProvisional&&Session.rosterProvisional()){
+      $('gbtn-t').textContent='Checking your account…';
+      await new Promise(res=>{
+        const t=setInterval(()=>{
+          if(!Session.rosterProvisional()||!window.Sync){clearInterval(t);res();}
+        },200);
+        setTimeout(()=>{clearInterval(t);res();},8000);
+      });
+    }
+
+    const s=Session.signInWithEmail(r.user.email);
+    if(!s.ok){
+      $('gbtn').disabled=false;
+      $('gbtn-t').textContent='Continue with Google';
+      $('msg').innerHTML='<div class="al"><b>'+r.user.email+'</b> is signed in with Google but is not on the staff list.'
+        +'<br><br>An owner adds it on the <b>Backup &amp; Google</b> screen. Until then, sign in with your number and PIN.'
+        +'<br><br><a href="#" onclick="GAuth.signOut().then(()=>location.href=location.pathname);return false;" style="color:var(--gold)">Use a different Google account</a></div>';
+      return;
+    }
+    const next=qs.get('next');
+    location.replace((next&&next.indexOf('login')<0)?next:Session.landingFor(s.session.role));
+  })();
+
+  window.doGoogle=async function(){
+    $('gbtn').disabled=true;$('gbtn-t').textContent='Opening Google…';
+    const r=await GAuth.signIn(true);
+    if(!r.ok){
+      $('gbtn').disabled=false;$('gbtn-t').textContent='Continue with Google';
+      fail(r.why+' — Google sign-in may not be switched on in Supabase yet (see SETUP.md).');
+    }
+  };
+})();
+</script>
+</body>
+</html>

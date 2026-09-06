@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdf6ec">
+<meta name="robots" content="noindex,nofollow">
+<title>Backup &amp; Google — BM Ventures</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--cream:#fdf6ec;--gold:#c9962c;--br:#4a2c0a;--border:#e0d4c4;--sub:#8a7355;--ok:#2f7a4a;--bad:#b0442c}
+body{background:var(--cream);color:var(--br);font:400 15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:18px 16px 60px;text-wrap:pretty}
+.wrap{max-width:520px;margin:0 auto}
+.top{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.top-i{width:44px;height:44px;border-radius:13px;background:#fff;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:21px;flex:0 0 auto}
+h1{font-size:20px;font-weight:800;line-height:1.2}
+.top-s{font-size:12px;color:var(--sub);margin-top:2px}
+.card{background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px}
+h2{font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--sub);margin-bottom:12px}
+p{font-size:13px;line-height:1.6;color:#5c4526}
+.btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;background:var(--br);color:#fff;border:none;border-radius:13px;padding:14px;font:800 15px/1 inherit;font-family:inherit;cursor:pointer}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.alt{background:#fff;color:var(--br);border:1.5px solid var(--border)}
+.btn.warn{background:#fff;color:var(--bad);border:1.5px solid #e8c3b8}
+.btn+.btn{margin-top:9px}
+.g{width:17px;height:17px;flex:0 0 auto}
+.you{display:flex;align-items:center;gap:11px}
+.you-a{width:38px;height:38px;border-radius:50%;background:var(--cream);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--gold);flex:0 0 auto;overflow:hidden}
+.you-a img{width:100%;height:100%;object-fit:cover}
+.you-n{font-size:14.5px;font-weight:800;line-height:1.25}
+.you-e{font-size:12px;color:var(--sub);word-break:break-all;line-height:1.4}
+.al{border-radius:12px;padding:11px 13px;font-size:12.5px;line-height:1.55;margin-bottom:12px}
+.al.warnbox{background:#fff8e8;border:1px solid #e8d5a8;color:#7a5a10}
+.al.badbox{background:#fdf0ec;border:1px solid #e8c3b8;color:#8c3520}
+.al.okbox{background:#eef7f0;border:1px solid #bcdcc6;color:#255e3b}
+.row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #f2ebe0}
+.row:last-child{border-bottom:none}
+.row-n{font-size:13.5px;font-weight:700;line-height:1.3}
+.row-d{font-size:11.5px;color:var(--sub);margin-top:2px}
+.row-b{margin-left:auto;flex:0 0 auto}
+.mini{background:var(--cream);border:1.5px solid var(--border);color:var(--br);border-radius:10px;padding:8px 12px;font:800 12px/1 inherit;font-family:inherit;cursor:pointer}
+.mini:disabled{opacity:.45}
+label{display:block;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--sub);margin-bottom:6px}
+input{width:100%;background:var(--cream);border:1.5px solid var(--border);border-radius:11px;padding:12px;font:400 15px/1 inherit;font-family:inherit;color:var(--br)}
+input:focus{outline:none;border-color:var(--gold)}
+.acct{padding:13px 0;border-bottom:1px solid #f2ebe0}
+.acct:last-child{border-bottom:none}
+.acct-h{display:flex;flex-wrap:wrap;align-items:center;gap:3px 8px;margin-bottom:8px}
+.acct-n{font-size:13.5px;font-weight:800;line-height:1.35}
+.acct-r{font-size:11.5px;color:var(--sub);line-height:1.35}
+.acct-f{display:flex;gap:8px}
+.acct-f input{font-size:13px;padding:10px}
+.log{font:400 11.5px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--sub);white-space:pre-wrap;margin-top:11px}
+.foot{font-size:11.5px;color:var(--sub);line-height:1.65;margin-top:18px}
+a{color:var(--gold);font-weight:700}
+a:hover{color:var(--br)}
+.back{background:none;border:none;color:var(--sub);font:700 13px/1 inherit;font-family:inherit;cursor:pointer;padding:12px 0;text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div class="top-i">☁️</div>
+    <div>
+      <div style="display:flex;align-items:center;gap:8px"><h1 style="margin:0">Backup &amp; Google</h1><span style="flex:1"></span><span data-settings-btn></span></div>
+      <div class="top-s" id="who-sub">Loading…</div>
+    </div>
+    <div class="row-b" data-session-chip></div>
+  </div>
+
+  <div id="msg"></div>
+
+  <div class="card">
+    <h2>Google account</h2>
+    <div id="gbox"></div>
+  </div>
+
+  <div class="card">
+    <h2>Back up to Drive</h2>
+    <p id="bk-what">A copy of every shared record and every setting on this phone, written into your own Google Drive: one file the app can restore from, plus readable sheets you can open in Google Sheets or Excel.</p>
+    <div id="bk-box" style="margin-top:13px"></div>
+    <div class="log" id="bk-log"></div>
+  </div>
+
+  <div class="card" id="list-card">
+    <h2>Backups in Drive</h2>
+    <div id="list-box"></div>
+  </div>
+
+  <div class="card" id="access-card" style="display:none">
+    <h2>Who may sign in with Google</h2>
+    <p>An email here can open the app with Google, with no PIN. Leave it empty and that person signs in with their phone number and PIN as before. Adding an email <b>is</b> granting access — nobody can grant their own.</p>
+    <div id="access-box" style="margin-top:6px"></div>
+  </div>
+
+  <div class="foot">
+    Supabase is already the shop's live copy — this is a second copy you own outright, in an account nobody else controls. It matters if the subscription lapses or the database is deleted by mistake.
+    <br><br>
+    A browser can only hold Google Drive permission for about an hour, and cannot renew it quietly. So backups run while you are here and looking at the screen. There is no automatic overnight backup — that needs a server, which this app does not have.
+  </div>
+
+  <button class="back" onclick="history.length>1?history.back():location.href='login.html?menu=1'">Back</button>
+</div>
+
+<script src="supabase-config.js?v=32"></script>
+<script src="sync.js?v=32"></script>
+<script src="session.js?v=32"></script>
+<script src="settings.js?v=32"></script>
+<script src="google.js?v=32"></script>
+<script>
+// The screen where the two Google features meet. Reachable only by somebody already signed
+// in on a PIN as owner or kitchen manager — Google is layered on top of an existing staff
+// identity, never a way in on its own. That ordering is what stops any Google account on
+// earth from being an account here.
+
+const sess = Session.require(['owner','kitchen_manager']);
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const isOwner = sess && sess.role === 'owner';
+let guser = null;
+
+const GLOGO = '<svg class="g" viewBox="0 0 48 48" aria-hidden="true">'
+  + '<path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.5 30.2 0 24 0 14.6 0 6.5 5.4 2.5 13.2l7.9 6.1C12.3 13.2 17.7 9.5 24 9.5z"/>'
+  + '<path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-2.8-.4-4.1H24v8.4h12.5c-.3 2.1-1.6 5.2-4.6 7.3l7.6 5.9c4.5-4.2 6.6-10.3 6.6-17.5z"/>'
+  + '<path fill="#FBBC05" d="M10.4 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.5 10.8l7.9-6.1z"/>'
+  + '<path fill="#34A853" d="M24 48c6.2 0 11.5-2 15.5-5.9l-7.6-5.9c-2 1.4-4.7 2.4-7.9 2.4-6.3 0-11.7-3.7-13.6-9.9l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>';
+
+function note(kind, html){ $('msg').innerHTML = '<div class="al '+kind+'">'+html+'</div>'; }
+
+// ── Google account ─────────────────────────────────────────────────────────
+function paintGoogle(err){
+  const b = $('gbox');
+  if (err) {
+    b.innerHTML = '<div class="al badbox">'+esc(err)+'</div>'
+      + '<button class="btn alt" onclick="location.reload()">Try again</button>';
+    return;
+  }
+  if (!guser) {
+    b.innerHTML = '<p>Sign in with Google to write backups into your Drive'
+      + (isOwner ? ', and to let staff open the app with their Google account instead of a PIN.' : '.')
+      + '</p><button class="btn" style="margin-top:13px" onclick="doSignIn()">'+GLOGO+'Continue with Google</button>';
+    return;
+  }
+  const drive = GAuth.hasDrive();
+  b.innerHTML = '<div class="you">'
+      + '<div class="you-a">'+(guser.photo?'<img src="'+esc(guser.photo)+'" alt="">':esc((guser.name||'?')[0].toUpperCase()))+'</div>'
+      + '<div><div class="you-n">'+esc(guser.name)+'</div><div class="you-e">'+esc(guser.email)+'</div></div></div>'
+    + (drive ? '<div class="al okbox" style="margin:13px 0 0">Drive permission held for this session. It lapses after about an hour — sign in again if a backup is refused.</div>'
+             : '<div class="al warnbox" style="margin:13px 0 0">Signed in, but Drive permission has lapsed. Sign in again to back up.</div>')
+    + '<button class="btn alt" style="margin-top:11px" onclick="doSignIn()">'+GLOGO+(drive?'Refresh Drive permission':'Grant Drive permission')+'</button>'
+    + '<button class="btn alt" onclick="doSignOut()">Disconnect Google</button>';
+}
+
+async function doSignIn(){
+  const r = await GAuth.signIn(true);
+  if (!r.ok) note('badbox', esc(r.why) + ' — if this says the provider is not enabled, Google sign-in still has to be switched on in Supabase (see SETUP.md).');
+}
+async function doSignOut(){
+  await GAuth.signOut();
+  guser = null; paintGoogle(); paintBackup(); paintList();
+}
+
+// ── backup ─────────────────────────────────────────────────────────────────
+function paintBackup(){
+  const b = $('bk-box');
+  const snap = DriveBackup.snapshot();
+  const rows = Object.keys(snap.counts).reduce((a,k)=>a+snap.counts[k],0);
+  const detail = '<div class="row-d" style="margin-bottom:11px">'+rows+' records across '
+    + Object.keys(snap.counts).length + ' tables, plus ' + Object.keys(snap.settings).length
+    + ' settings on this phone.</div>';
+  if (!GAuth.hasDrive()) {
+    b.innerHTML = detail + '<button class="btn" disabled>Back up now</button>'
+      + '<div class="row-d" style="margin-top:9px">Sign in with Google above first.</div>';
+    return;
+  }
+  b.innerHTML = detail + '<button class="btn" id="bk-go" onclick="doBackup()">Back up now</button>';
+}
+
+async function doBackup(){
+  const btn = $('bk-go'); if (btn) { btn.disabled = true; btn.textContent = 'Backing up…'; }
+  $('bk-log').textContent = '';
+  try {
+    const r = await DriveBackup.run(s => { $('bk-log').textContent += s + '\n'; });
+    $('bk-log').textContent = '';
+    note('okbox', 'Backed up ' + r.rows + ' records and ' + r.settings + ' settings at '
+      + new Date(r.at).toLocaleString() + '. Restore file: <b>' + esc(r.file.name) + '</b>'
+      + (r.file.webViewLink ? ' — <a href="'+esc(r.file.webViewLink)+'" target="_blank" rel="noopener">open in Drive</a>' : '')
+      + (r.sheets.length ? '. ' + r.sheets.length + ' sheets written.' : ''));
+    try { sessionStorage.setItem('cs9_backup_done', '1'); } catch(e){}
+    paintList();
+  } catch (e) {
+    note('badbox', esc(e.message || String(e)));
+  }
+  paintBackup();
+}
+
+// ── restore ────────────────────────────────────────────────────────────────
+async function paintList(){
+  const b = $('list-box');
+  if (!GAuth.hasDrive()) { b.innerHTML = '<div class="row-d">Sign in with Google to see what is already backed up.</div>'; return; }
+  b.innerHTML = '<div class="row-d">Reading Drive…</div>';
+  try {
+    const files = await DriveBackup.list();
+    if (!files.length) { b.innerHTML = '<div class="row-d">No backups yet. The first one takes a few seconds.</div>'; return; }
+    b.innerHTML = files.map(f =>
+      '<div class="row"><div><div class="row-n">'+new Date(f.at).toLocaleString()+'</div>'
+      + '<div class="row-d">'+esc(f.name)+' · '+Math.max(1,Math.round(f.size/1024))+' KB</div></div>'
+      + '<div class="row-b"><button class="mini" onclick="doRestore(\''+f.id+'\')">Restore</button></div></div>').join('');
+  } catch (e) {
+    b.innerHTML = '<div class="al badbox">'+esc(e.message||String(e))+'</div>';
+  }
+}
+
+// Restore merges. Sync keeps whichever version of a row was written later, so bringing back
+// an old backup adds what is missing without reviving figures that have since moved on.
+// Settings are the opposite risk — an old counter safe over today's would be exactly the
+// silent loss this screen exists to undo — so overwriting them is asked for separately.
+async function doRestore(id){
+  try {
+    const snap = await DriveBackup.read(id);
+    const rows = Object.keys(snap.counts||{}).reduce((a,k)=>a+snap.counts[k],0);
+    if (!confirm('Backup from ' + new Date(snap.taken_at).toLocaleString()
+      + '\n\n' + rows + ' records and ' + Object.keys(snap.settings||{}).length + ' settings.'
+      + '\n\nRecords will be merged — anything newer on the server is kept, nothing is deleted.'
+      + '\n\nOK to restore, Cancel to stop.')) return;
+    const over = Object.keys(snap.settings||{}).length > 0 && confirm(
+      'Settings — staff names, UPI, counter safe, prices.'
+      + '\n\nOK = overwrite what is on this phone with the backup'
+      + '\nCancel = only fill in settings that are missing (safer)');
+    const done = await DriveBackup.restore(snap, { records: true, settings: true, overwrite: over });
+    const n = Object.keys(done.tables).reduce((a,k)=>a+done.tables[k],0);
+    note('okbox', 'Restored ' + n + ' records and ' + done.settings + ' settings. '
+      + 'Records are syncing to the other phones now. Reload any open screen to see them.');
+  } catch (e) {
+    note('badbox', esc(e.message||String(e)));
+  }
+}
+
+// ── who may sign in with Google ────────────────────────────────────────────
+function paintAccess(){
+  if (!isOwner) return;
+  $('access-card').style.display = 'block';
+  const list = Session.emailAccounts();
+  $('access-box').innerHTML = list.map(a =>
+    '<div class="acct"><div class="acct-h"><span class="acct-n">'+esc(a.name)+'</span>'
+    + '<span class="acct-r">'+esc((Session.roles[a.role]||{}).label||a.role)+' · '+esc(Session.shopName(a.shop))+'</span></div>'
+    + '<div class="acct-f"><input id="em-'+esc(a.id)+'" type="email" inputmode="email" autocapitalize="off" '
+    + 'placeholder="no Google access" value="'+esc(a.email||'')+'">'
+    + '<button class="mini" onclick="saveEmail(\''+esc(a.id)+'\')">Save</button></div></div>').join('');
+}
+
+function saveEmail(id){
+  const el = $('em-' + id);
+  const r = Session.attachEmail(id, el.value);
+  if (!r.ok) { note('badbox', esc(r.why)); return; }
+  note('okbox', r.account.email
+    ? esc(r.account.email) + ' can now open the app with Google as ' + esc(r.account.name) + '.'
+    : 'Google access removed from ' + esc(r.account.name) + '.');
+  paintAccess();
+}
+
+// ── boot ───────────────────────────────────────────────────────────────────
+(async function(){
+  if (!sess) return;
+  Session.chip();
+  $('who-sub').textContent = sess.name + ' · ' + ((Session.roles[sess.role]||{}).label||sess.role);
+  if (!isOwner) $('bk-what').innerHTML += ' Only an owner can change who signs in with Google.';
+
+  const r = await GAuth.boot();
+  if (!r.ok) { paintGoogle(r.why); }
+  else { guser = r.user; paintGoogle(); }
+
+  paintBackup();
+  paintAccess();
+  paintList();
+
+  // Once per session, unprompted, because a backup nobody remembers to press is not a
+  // backup. It is an offer and not an automatic write — a silent upload on page load is a
+  // surprise, and this one costs a manager's mobile data.
+  if (guser && GAuth.hasDrive() && !sessionStorage.getItem('cs9_backup_done')) {
+    note('warnbox', 'No backup yet in this session. <a href="#" onclick="doBackup();return false;">Back up now</a> — it takes a few seconds.');
+  }
+})();
+</script>
+</body>
+</html>

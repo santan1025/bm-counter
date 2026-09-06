@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#4a2c0a">
+<meta name="robots" content="noindex,nofollow">
+<title>Check this phone</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fdf6ec;color:#1a1a1a;padding:20px 16px 90px;font-size:15px}
+.wrap{max-width:620px;margin:0 auto}
+h1{font-size:23px;font-weight:900;color:#4a2c0a;letter-spacing:-.4px}
+.sub{font-size:13px;color:#8a7f70;margin:6px 0 20px;line-height:1.5}
+.card{background:#fff;border:1px solid #e0d4c4;border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.card h2{font-size:11px;font-weight:800;color:#8a7f70;text-transform:uppercase;letter-spacing:.9px;margin-bottom:10px}
+.row{display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:1px solid #f4efe6;font-size:13.5px}
+.row:last-child{border-bottom:none}
+.row b{font-weight:700;min-width:132px;color:#4a2c0a}
+.row span{flex:1;word-break:break-word}
+.ok{color:#1a6b1a;font-weight:800}
+.bad{color:#b22222;font-weight:800}
+.warn{color:#8a5a12;font-weight:800}
+pre{background:#faf6ef;border:1px solid #eee3d4;border-radius:10px;padding:10px;font-size:11px;line-height:1.5;overflow:auto;max-height:260px;white-space:pre-wrap}
+.btn{display:inline-block;background:#4a2c0a;color:#fff;border:none;border-radius:11px;padding:12px 16px;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer;margin:4px 6px 0 0}
+.btn.out{background:#fff;color:#4a2c0a;border:1.5px solid #e0d4c4}
+.hint{font-size:12px;color:#8a7f70;line-height:1.55;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="display:flex;align-items:center;gap:8px"><h1 style="margin:0">Check this phone</h1><span style="flex:1"></span><span data-settings-btn></span></div>
+  <div class="sub">Read this out over the phone and the problem is usually obvious from the first three lines. Nothing here changes any data.</div>
+
+  <div class="card">
+    <h2>Connection</h2>
+    <div id="conn"></div>
+  </div>
+
+  <div class="card">
+    <h2>This device</h2>
+    <div id="dev"></div>
+  </div>
+
+  <div class="card">
+    <h2>What is in the shared tables</h2>
+    <div id="tables"></div>
+  </div>
+
+  <div class="card">
+    <h2>Restock requests — the ones the kitchen should see</h2>
+    <div id="reqs"></div>
+    <div class="hint">A request is filed under the date the shop needs it. The kitchen board and the chef screen show everything still open up to tomorrow, so an order placed this afternoon for tomorrow appears straight away.</div>
+  </div>
+
+  <div class="card">
+    <h2>Actions</h2>
+    <button class="btn" onclick="location.reload()">Re-check</button>
+    <button class="btn out" onclick="copyAll()">Copy this report</button>
+    <button class="btn out" onclick="location.href='login.html'">Back to sign in</button>
+    <div class="hint">Copying gives you the whole report as text — paste it into chat and I can read the phone's exact state without guessing.</div>
+  </div>
+</div>
+
+<script src="supabase-config.js?v=32"></script>
+<script src="sync.js?v=32"></script>
+<script src="session.js?v=32"></script>
+<script src="settings.js?v=32"></script>
+<script src="google.js?v=32"></script>
+<script>
+// A support screen, written for a phone call: every line is a fact somebody can read aloud.
+// Built because "nothing shows up" cost an evening of guessing between keys, cache, security
+// headers and a date filter — four unrelated faults that all look identical from the outside.
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const dkey=d=>{const x=d||new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');};
+const td=()=>dkey();
+const tom=()=>{const d=new Date();d.setDate(d.getDate()+1);return dkey(d);};
+
+function row(label,value,cls){
+  return '<div class="row"><b>'+esc(label)+'</b><span'+(cls?' class="'+cls+'"':'')+'>'+value+'</span></div>';
+}
+
+function renderConn(s,detail){
+  const map={
+    live:['Connected','ok'],
+    behind:['Connected, writes waiting','warn'],
+    setup:['Connected, one setup step left','warn'],
+    connecting:['Connecting…','warn'],
+    local:['NOT connected — this phone is alone','bad']
+  };
+  const m=map[s]||[s,'warn'];
+  $('conn').innerHTML=
+    row('Status','<span class="'+m[1]+'">'+m[0]+'</span>')
+    +(detail?row('Detail',esc(detail)):'')
+    +row('Keys from',esc(Sync.keySource))
+    +row('Database',esc((window.SUPABASE_CONFIG&&SUPABASE_CONFIG.url)||'not loaded'),
+      (window.SUPABASE_CONFIG&&SUPABASE_CONFIG.url&&SUPABASE_CONFIG.url.indexOf('PASTE')<0)?'ok':'bad')
+    +row('Library loaded',window.supabase?'<span class="ok">yes</span>'
+      :(s==='connecting'?'loading\u2026'
+      :'<span class="bad">no — usually the site\u2019s security headers (_headers) blocking cdn.jsdelivr.net</span>'))
+    +row('Missing tables',(Sync.missingTables&&Sync.missingTables.length)?'<span class="bad">'+esc(Sync.missingTables.join(', '))+'</span>':'<span class="ok">none</span>')
+    +row('Writes waiting',String(queued()));
+}
+
+function queued(){
+  try{return (JSON.parse(localStorage.getItem('cs9_sync_queue'))||[]).length;}catch(e){return 0;}
+}
+
+function renderDev(){
+  const sess=Session.current();
+  $('dev').innerHTML=
+    row('Signed in as',sess?esc(sess.name)+' — '+esc((Session.roles[sess.role]||{}).label||sess.role):'<span class="warn">nobody</span>')
+    +row('Shop on this phone',esc(Session.deviceShop()?Session.shopName(Session.deviceShop()):'not set yet'))
+    +row('Marked as owner\u2019s',Session.trusted()?'yes (hidden logins offered)':'no')
+    +row('Today',esc(td())+' \u00b7 tomorrow '+esc(tom()))
+    +row('Staff accounts',String(Session.list().length)+' \u00b7 PINs set: '+Session.list().filter(a=>a.pin_hash).length)
+    +row('Google access',googleRow())
+    +row('App build','v32')
+    +row('Library from',esc((window.Sync&&Sync.librarySource)||'unknown'))
+    +row('Address',esc(location.host||'opened as a file'));
+}
+
+function googleRow(){
+  const withEmail=Session.list().filter(a=>a.email).length;
+  if(!window.GAuth) return '<span class="warn">google.js is not loaded on this page</span>';
+  if(!withEmail) return '<span class="warn">no staff email set yet \u2014 nobody can sign in with Google. '
+    + 'Owner \u2192 Backup &amp; Google.</span>';
+  return withEmail+' staff email'+(withEmail===1?'':'s')+' set'
+    + (GAuth.hasDrive()?' \u00b7 <span class="ok">Drive permission held</span>':' \u00b7 Drive permission not held on this phone right now');
+}
+
+function renderTables(){
+  $('tables').innerHTML=Sync.tables.map(t=>{
+    const n=Sync.list(t).length;
+    return row(t,String(n),n?'':'');
+  }).join('');
+}
+
+function renderReqs(){
+  const all=Sync.list('requests').slice()
+    .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+  if(!all.length){
+    $('reqs').innerHTML=row('Found','<span class="warn">none at all</span>')
+      +'<div class="hint">If a shop has placed a restock order and this says none, the order never reached the table. On the counter phone: the order must be PLACED, not just filled in.</div>';
+    return;
+  }
+  const visible=all.filter(r=>r.status!=='dispatched'&&String(r.date||'')<=tom());
+  $('reqs').innerHTML=row('Total in table',String(all.length))
+    +row('Kitchen should see now',String(visible.length),visible.length?'ok':'warn')
+    +'<pre>'+esc(all.slice(0,12).map(r=>
+      [r.date,(r.time||'--:--'),(r.shop_name||r.shop_id||'?'),
+       (r.status||'new'),
+       ((r.items||[]).reduce((a,i)=>a+(i.ask||0),0))+' pcs',
+       r.date===td()?'today':(r.date===tom()?'tomorrow':'other date')
+      ].join('  \u00b7  ')).join('\n'))+'</pre>';
+}
+
+function copyAll(){
+  const txt=document.querySelector('.wrap').innerText;
+  const done=()=>alert('Report copied. Paste it into chat.');
+  if(navigator.clipboard&&location.protocol==='https:')navigator.clipboard.writeText(txt).then(done,()=>{});
+  else{
+    const r=document.createRange();r.selectNode(document.querySelector('.wrap'));
+    getSelection().removeAllRanges();getSelection().addRange(r);
+    alert('Selected the report — long-press and choose Copy.');
+  }
+}
+
+Sync.onStatus((s,detail)=>{renderConn(s,detail);renderTables();renderReqs();});
+renderDev();
+['requests','staff_accounts','cm_sales'].forEach(t=>Sync.subscribe(t,()=>{renderTables();renderReqs();renderDev();}));
+</script>
+</body>
+</html>

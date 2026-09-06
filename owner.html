@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#4a2c0a">
+<meta name="robots" content="noindex,nofollow">
+<title>📊 Owner — All shops</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--br:#4a2c0a;--gold:#c8841a;--cream:#fdf6ec;--bg:#f2ede5;--card:#fff;
+  --gr:#1a6b1a;--rd:#b22222;--or:#a85000;--border:#e2d7c7;--text:#1a1a1a;--sub:#7d7266}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:16px;padding-bottom:74px}
+.top{background:var(--br);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:40}
+.top-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.top h1{font-size:17.5px;font-weight:900;white-space:nowrap}
+.top .sp{flex:1 1 0;min-width:0}
+.pill{font-size:10.5px;font-weight:800;padding:5px 10px;border-radius:20px;background:rgba(255,255,255,.15);white-space:nowrap}
+.when{font-size:11.5px;opacity:.62;margin-top:4px}
+.wrap{padding:13px 13px 0;max-width:940px;margin:0 auto}
+
+.range{display:flex;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:13px}
+.range button{flex:1;border:none;background:none;padding:10px 4px;border-radius:9px;font-size:13px;font-weight:800;font-family:inherit;color:var(--sub);cursor:pointer}
+.range button.on{background:var(--br);color:#fff}
+
+/* Profit hero — the only number he actually asks about */
+.hero{background:var(--br);color:#fff;border-radius:17px;padding:17px 18px;margin-bottom:13px}
+.hero-l{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.9px;opacity:.58}
+.hero-v{font-size:40px;font-weight:900;letter-spacing:-1.4px;line-height:1;margin-top:3px}
+.hero-v.neg{color:#ff9c9c}
+.hero-sub{font-size:12.5px;opacity:.72;margin-top:7px;line-height:1.5}
+.brk{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:14px;background:rgba(255,255,255,.14);border-radius:11px;overflow:hidden}
+.brk div{background:rgba(0,0,0,.16);padding:9px 7px;text-align:center}
+.brk .bl{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;opacity:.6}
+.brk .bv{font-size:14.5px;font-weight:900;margin-top:2px;font-variant-numeric:tabular-nums}
+
+.sec{margin-bottom:19px}
+.sec-h{display:flex;align-items:baseline;gap:8px;margin-bottom:8px;padding:0 2px}
+.sec-h h2{font-size:14.5px;font-weight:900;color:var(--br);white-space:nowrap}
+.sec-h .sp{flex:1}
+.sec-h .n{font-size:11.5px;font-weight:800;color:var(--sub)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:15px;padding:3px 15px}
+.empty{background:var(--card);border:1px dashed var(--border);border-radius:15px;padding:20px 16px;text-align:center;color:var(--sub);font-size:13px;line-height:1.6}
+
+/* Exceptions — the reason this screen exists */
+.ex{display:flex;gap:11px;align-items:flex-start;background:var(--card);border:1px solid var(--border);border-left:4px solid var(--sub);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.ex.hi{border-left-color:var(--rd);background:#fdf4f3}
+.ex.md{border-left-color:var(--or);background:#fdf8f2}
+.ex-i{font-size:17px;line-height:1.1;flex:0 0 auto}
+.ex-t{font-size:14.5px;font-weight:800;line-height:1.3}
+.ex-d{font-size:12.5px;color:var(--sub);margin-top:3px;line-height:1.5}
+.allclear{background:#eaf5ea;border:1px solid #bcdcbc;border-radius:15px;padding:20px 16px;text-align:center}
+.allclear b{color:var(--gr);font-size:15.5px;display:block;margin-bottom:4px}
+.allclear span{font-size:12.5px;color:#4a7a4a;line-height:1.55}
+
+.row{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+.row:last-child{border-bottom:none}
+.r-n{font-size:15px;font-weight:800;line-height:1.25}
+.r-s{font-size:11.5px;color:var(--sub);margin-top:2px;line-height:1.4}
+.r-v{font-size:17px;font-weight:900;font-variant-numeric:tabular-nums;text-align:right;line-height:1.15}
+.r-v small{display:block;font-size:11px;font-weight:700;color:var(--sub);margin-top:2px}
+.zero .r-v{color:var(--sub)}
+.up{color:var(--gr)}.down{color:var(--rd)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gr);margin-right:5px;vertical-align:1px}
+.dot.off{background:#c9bfb2}
+.bar{height:5px;border-radius:4px;background:#efe7db;overflow:hidden;margin-top:6px;grid-column:1/-1}
+.bar i{display:block;height:100%;background:var(--gold)}
+.hint{font-size:11.5px;color:var(--sub);line-height:1.55;padding:2px 2px 8px}
+.btn{width:100%;border:1.5px solid var(--border);background:var(--card);color:var(--br);border-radius:12px;padding:13px;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer;margin-bottom:9px}
+/* ── Adaptive layout ──────────────────────────────────────────────────────
+   This screen was built phone-first and stayed a 940px column on every
+   device, so on a laptop two thirds of the display was empty margin and the
+   owner scrolled past seven sections one at a time. The markup is unchanged:
+   .wrap simply becomes a grid on wider screens, and the two things that must
+   read as headlines — the range switch with the profit hero, and the
+   exceptions — keep the full width. */
+@media (min-width:900px){
+  .wrap{max-width:1180px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px;align-items:start}
+  .wrap>.range,.wrap>.hero{grid-column:1/-1}
+  .wrap>.sec:nth-of-type(1){grid-column:1/-1}
+  .wrap>.sec:last-child{grid-column:1/-1}
+  .hero-v{font-size:40px}
+}
+@media (min-width:1400px){
+  .wrap{max-width:1520px;grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+/* Narrow phones: four figures across is 60px each, which wraps the labels
+   into unreadable stacks. Two by two instead. */
+@media (max-width:380px){
+  .brk{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="top-r">
+    <h1>📊 All shops</h1>
+    <div class="sp"></div>
+    <div class="pill" id="pill">…</div>
+    <span data-session-chip="dark"></span><span data-settings-btn></span>
+  </div>
+  <div class="when" id="when"></div>
+</div>
+
+<div class="wrap">
+  <div class="range">
+    <button class="on" id="r-today" onclick="setRange('today')">Today</button>
+    <button id="r-week" onclick="setRange('week')">7 days</button>
+    <button id="r-month" onclick="setRange('month')">This month</button>
+  </div>
+
+  <div class="hero">
+    <div class="hero-l" id="hero-l">Profit today</div>
+    <div class="hero-v" id="profit">₹0</div>
+    <div class="hero-sub" id="profit-sub"></div>
+    <div class="brk" id="brk"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>Needs your attention</h2><div class="sp"></div><div class="n" id="n-ex"></div></div>
+    <div id="ex"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>Cash sitting in shops</h2><div class="sp"></div><div class="n" id="n-cash"></div></div>
+    <div id="cash"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>Shop by shop</h2><div class="sp"></div><div class="n" id="n-shops"></div></div>
+    <div id="shops"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>Advances you are holding</h2><div class="sp"></div><div class="n" id="n-adv"></div></div>
+    <div id="adv"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>Wastage</h2><div class="sp"></div><div class="n" id="n-waste"></div></div>
+    <div id="waste"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>Staff hours</h2><div class="sp"></div><div class="n" id="n-staff"></div></div>
+    <div id="staff"></div>
+  </div>
+
+  <div class="sec">
+    <div class="hint">Read only — nothing here changes a till. Salary days and the all-shops workbook export are the next pieces.</div>
+  </div>
+</div>
+
+<script src="supabase-config.js?v=32"></script>
+<script src="sync.js?v=32"></script>
+<script src="session.js?v=32"></script>
+<script src="settings.js?v=32"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// OWNER SCREEN
+// ═══════════════════════════════════════════════════════════════════════════
+// The counter app already has a per-shop owner dashboard. Repeating it here would be
+// worse than useless, so this screen only does what no single device can: add every shop
+// and the kitchen together, and say what is wrong.
+//
+// Two decisions shape it. First, profit leads, not revenue — revenue is a number that
+// always looks fine. Second, it is exception-first: the owner should not have to read a
+// wall of figures hunting for the problem, so the problems are named and ranked, and a
+// clean day says so in one line.
+Session.require(['owner']);
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=n=>'₹'+Math.round(n||0).toLocaleString('en-IN');
+const fmtK=n=>Math.abs(n)>=100000?'₹'+(n/100000).toFixed(1)+'L':Math.abs(n)>=1000?'₹'+Math.round(n/1000)+'k':fmt(n);
+const dk=d=>d.toISOString().slice(0,10);
+const td=()=>dk(new Date());
+// Derived, not listed: a shop added in session.js appears here with no further edit.
+const SHOP_IDS=Object.keys(Session.shops).filter(id=>id!=='K1');
+let range='today';
+
+function dates(){
+  const out=[],n=range==='today'?1:range==='week'?7:new Date().getDate();
+  for(let i=0;i<n;i++){const d=new Date();d.setDate(d.getDate()-i);out.push(dk(d));}
+  return out;
+}
+function setRange(r){
+  range=r;
+  ['today','week','month'].forEach(x=>$('r-'+x).classList.toggle('on',x===r));
+  render();
+}
+
+Sync.onStatus(s=>{
+  $('pill').textContent=s==='live'?'● Live':s==='behind'?'● Catching up':'○ This device only';
+});
+
+const real=r=>!r.is_test&&!r.demo;
+
+// ── PROFIT ───────────────────────────────────────────────────────────────
+// Revenue minus what the goods cost, minus what it cost to trade, minus what was thrown
+// away. Cost prices travel on the stock rows, so this works without every shop's product
+// list. Where a cost is still missing the item is counted at zero cost and flagged —
+// silently overstating profit would be the worst possible failure of this screen.
+function costMap(){
+  const m={};
+  Sync.list('stock').forEach(s=>{if(s.name&&s.cost)m[s.name]=s.cost;});
+  return m;
+}
+
+function money(days){
+  const cm=costMap();
+  const sales=Sync.list('cm_sales').filter(s=>days.indexOf(s.date)>=0&&real(s));
+  const exps=Sync.list('expenses').filter(e=>days.indexOf(e.date)>=0&&real(e));
+  const dmg=Sync.list('damage').filter(d=>days.indexOf(d.date)>=0&&real(d));
+  let rev=0,cogs=0,unpriced=0,noCost=0;
+  sales.forEach(s=>{
+    rev+=s.total||0;
+    (s.items||[]).forEach(i=>{
+      const q=i.qty||0;
+      if(!(i.price>0))unpriced+=q;
+      const c=cm[i.name];
+      if(c==null)noCost+=q; else cogs+=c*q;
+    });
+  });
+  const exp=exps.reduce((a,e)=>a+(e.amt||0),0);
+  const waste=dmg.reduce((a,d)=>a+(d.value||0),0);
+  return {rev,cogs,exp,waste,profit:rev-cogs-exp-waste,
+    bills:sales.length,sales,exps,dmg,unpriced,noCost};
+}
+
+// ── EXCEPTIONS ───────────────────────────────────────────────────────────
+// Each rule answers a question the owner would otherwise ask on the phone at 9pm.
+// Ranked, because on a phone only the first three are read.
+function exceptions(m){
+  const out=[],hour=new Date().getHours(),day=td();
+  const books=Sync.list('daybook');
+  const punches=Sync.list('punches').filter(p=>p.date===day);
+  const specs=Sync.list('special_orders');
+  const reqs=Sync.list('requests').filter(r=>r.date===day);
+
+  // A shop that has sold nothing by mid-afternoon is not a slow day; it is a tablet that
+  // is off, or nobody signed in.
+  if(range==='today'&&hour>=14){
+    SHOP_IDS.forEach(id=>{
+      const rev=m.sales.filter(s=>s.shop_id===id).reduce((a,s)=>a+(s.total||0),0);
+      if(rev>0)return;
+      const on=punches.some(p=>p.shop_id===id&&p.in_at);
+      out.push({p:1,i:'🔴',t:Session.shopName(id)+' has not rung up a single bill today',
+        d:on?'Someone is signed in, so the tablet is on but nothing is being recorded.'
+            :'Nobody has signed in either — the tablet is probably off.'});
+    });
+  }
+
+  // Yesterday left open. Cash unreconciled overnight is how shortfalls stop being
+  // traceable to a person or a day.
+  const yd=new Date();yd.setDate(yd.getDate()-1);
+  const ydk=dk(yd);
+  SHOP_IDS.forEach(id=>{
+    const b=books.find(x=>x.shop_id===id&&x.date===ydk);
+    const traded=Sync.list('cm_sales').some(s=>s.shop_id===id&&s.date===ydk&&real(s));
+    if(traded&&(!b||!b.closed))
+      out.push({p:1,i:'🟠',t:Session.shopName(id)+' did not close yesterday',
+        d:'Sales were recorded but the day was never settled, so yesterday\u2019s cash cannot be checked against it.'});
+  });
+
+  // Counted cash against expected. A gap either way is worth a question.
+  books.filter(b=>b.date===day&&b.cash_counted!=null).forEach(b=>{
+    const gap=(b.cash_counted||0)-(b.cash_expected||0);
+    if(Math.abs(gap)>=200)
+      out.push({p:gap<0?1:2,i:gap<0?'🔴':'🟡',
+        t:Session.shopName(b.shop_id)+': cash is '+fmt(Math.abs(gap))+(gap<0?' short':' over'),
+        d:'Counted '+fmt(b.cash_counted)+' against '+fmt(b.cash_expected)+' of cash sales.'});
+  });
+
+  // Discounts. One person discounting far more than the rest is the classic leak.
+  const byStaff={};
+  m.sales.forEach(s=>{
+    const k=s.staff||'unknown';
+    const b=byStaff[k]=byStaff[k]||{disc:0,rev:0};
+    b.disc+=s.disc||0;b.rev+=s.total||0;
+  });
+  Object.keys(byStaff).forEach(k=>{
+    const b=byStaff[k];
+    if(b.rev>2000&&b.disc/(b.rev+b.disc)>0.06)
+      out.push({p:2,i:'🟡',t:esc(k)+' gave '+fmt(b.disc)+' in discounts',
+        d:Math.round(b.disc/(b.rev+b.disc)*100)+'% of their own takings — worth a look at which bills.'});
+  });
+
+  // Wastage against turnover. Cake shops die on unsold stock.
+  if(m.rev>0&&m.waste/m.rev>0.05)
+    out.push({p:2,i:'🟠',t:'Wastage is '+Math.round(m.waste/m.rev*100)+'% of takings',
+      d:fmt(m.waste)+' thrown away. Above about 4% the kitchen is making more than the shops can sell.'});
+
+  // A cake due today that the kitchen has not started.
+  specs.filter(o=>o.needed_date===day&&(o.status||'booked')==='booked').forEach(o=>{
+    out.push({p:1,i:'🔴',t:'"'+esc(o.product||'Cake')+'" is due today and not started',
+      d:esc(o.customer||'')+' · '+esc(Session.shopName(o.shop_id))+(o.needed_time?' by '+esc(o.needed_time):'')});
+  });
+
+  // Advance taken on an order already past its date.
+  specs.filter(o=>o.advance>0&&o.needed_date&&o.needed_date<day
+    &&['collected','cancelled'].indexOf(o.status||'')<0).forEach(o=>{
+    out.push({p:2,i:'🟡',t:fmt(o.advance)+' advance on an order that has passed its date',
+      d:esc(o.product||'Cake')+' for '+esc(o.customer||'a customer')+', due '+esc(o.needed_date)+' and still open.'});
+  });
+
+  // Shops that asked the kitchen for stock hours ago and got nothing.
+  reqs.filter(r=>r.status!=='dispatched').forEach(r=>{
+    const askedH=parseInt(String(r.time||'').slice(0,2));
+    if(!isNaN(askedH)&&hour-askedH>=4)
+      out.push({p:2,i:'🟠',t:Session.shopName(r.shop_id)+' has been waiting since '+esc(r.time),
+        d:'The kitchen has not dispatched their restock request yet.'});
+  });
+
+  // A shift running long enough that someone forgot to punch out.
+  punches.filter(p=>p.in_at&&!p.out_at&&!/seed-/.test(String(p.id))).forEach(p=>{
+    const h=(Date.now()-new Date(p.in_at))/3600000;
+    if(h>13)out.push({p:3,i:'🟡',t:esc(p.staff_name)+' has been punched in '+h.toFixed(0)+' hours',
+      d:'Probably a missed punch-out rather than a real shift. It will auto-close at midnight.'});
+  });
+
+  // A closed shift whose out time precedes its in time can only be a data fault, and it
+  // would otherwise silently subtract from someone's paid days.
+  punches.filter(p=>p.in_at&&p.out_at&&new Date(p.out_at)<new Date(p.in_at)).forEach(p=>{
+    out.push({p:2,i:'🟠',t:esc(p.staff_name)+' has a punch record that ends before it starts',
+      d:'On '+esc(p.date)+'. Counted as zero hours here — it needs correcting before salary is worked out.'});
+  });
+
+  // Data quality, which right now is a real commercial issue rather than a nicety.
+  if(m.unpriced>0)
+    out.push({p:2,i:'🟠',t:m.unpriced+' items sold at \u20b90',
+      d:'These sales add nothing to takings. Prices are still unset on some products.'});
+  if(m.noCost>0)
+    out.push({p:2,i:'🟡',t:'No cost price for '+m.noCost+' items sold',
+      d:'Profit above is overstated by whatever those cost. The cost-price photos from the client are still outstanding.'});
+
+  return out.sort((a,b)=>a.p-b.p);
+}
+
+// ── RENDER ───────────────────────────────────────────────────────────────
+function render(){
+  const days=dates(),m=money(days);
+  const label=range==='today'?'today':range==='week'?'last 7 days':'this month';
+
+  $('hero-l').textContent='Profit '+label;
+  const p=$('profit');
+  p.textContent=fmt(m.profit);
+  p.className='hero-v'+(m.profit<0?' neg':'');
+  $('profit-sub').textContent=m.bills
+    ? fmt(m.rev)+' taken over '+m.bills+' bill'+(m.bills===1?'':'s')
+      +(m.rev>0?' · '+Math.round(m.profit/m.rev*100)+'% margin':'')
+    : 'Nothing recorded '+label+'.';
+  $('brk').innerHTML=[['Takings',m.rev],['Goods',-m.cogs],['Expenses',-m.exp],['Wastage',-m.waste]]
+    .map(x=>'<div><div class="bl">'+x[0]+'</div><div class="bv">'+fmtK(x[1])+'</div></div>').join('');
+
+  const ex=exceptions(m);
+  $('n-ex').textContent=ex.length?ex.length+' thing'+(ex.length===1?'':'s'):'';
+  $('ex').innerHTML=ex.length
+    ? ex.slice(0,10).map(e=>'<div class="ex '+(e.p===1?'hi':e.p===2?'md':'')+'">'
+        +'<div class="ex-i">'+e.i+'</div><div><div class="ex-t">'+e.t+'</div>'
+        +'<div class="ex-d">'+e.d+'</div></div></div>').join('')
+    : '<div class="allclear"><b>Nothing needs you</b><span>All shops trading, yesterday closed everywhere, '
+      +'no cash gaps, no orders overdue.</span></div>';
+
+  // Cash he has not collected. The number that decides whether he drives out tonight.
+  const books=Sync.list('daybook');
+  const cashRows=SHOP_IDS.map(id=>{
+    const b=books.filter(x=>x.shop_id===id).sort((a,c)=>c.date.localeCompare(a.date))[0];
+    return {id:id,name:Session.shopName(id),box:b?(b.cashbox||0):0,as:b?b.date:null};
+  }).filter(r=>r.box>0);
+  const cashTot=cashRows.reduce((a,r)=>a+r.box,0);
+  $('n-cash').textContent=cashTot?fmt(cashTot):'';
+  $('cash').innerHTML=cashRows.length
+    ?'<div class="card">'+cashRows.map(r=>'<div class="row"><div><div class="r-n">'+esc(r.name)+'</div>'
+      +'<div class="r-s">counter safe as at '+esc(r.as||'')+'</div></div>'
+      +'<div class="r-v">'+fmt(r.box)+'</div></div>').join('')+'</div>'
+    :'<div class="empty">No counter safe figures have come in yet.</div>';
+
+  // Shop by shop, each against its own same weekday last week — comparing one shop to
+  // another says nothing, they have different footfall.
+  const cm=costMap();
+  const rows=SHOP_IDS.map(id=>{
+    const mine=m.sales.filter(s=>s.shop_id===id);
+    const rev=mine.reduce((a,s)=>a+(s.total||0),0);
+    let cogs=0;mine.forEach(s=>(s.items||[]).forEach(i=>{const c=cm[i.name];if(c!=null)cogs+=c*(i.qty||0);}));
+    const prevDays=days.map(d=>{const x=new Date(d+'T00:00:00');x.setDate(x.getDate()-7);return dk(x);});
+    const prev=Sync.list('cm_sales').filter(s=>s.shop_id===id&&prevDays.indexOf(s.date)>=0&&real(s))
+      .reduce((a,s)=>a+(s.total||0),0);
+    const on=Sync.list('punches').filter(p=>p.shop_id===id&&p.date===td()&&p.in_at&&!p.out_at);
+    return {id,name:Session.shopName(id),rev,cogs,bills:mine.length,prev,on};
+  });
+  const max=Math.max.apply(null,rows.map(r=>r.rev).concat([1]));
+  $('n-shops').textContent=fmt(m.rev);
+  $('shops').innerHTML='<div class="card">'+rows.map(r=>{
+    const d=r.prev>0?Math.round((r.rev-r.prev)/r.prev*100):null;
+    return '<div class="row'+(r.rev?'':' zero')+'">'
+      +'<div><div class="r-n">'+esc(r.name)+'</div>'
+      +'<div class="r-s"><span class="dot'+(r.on.length?'':' off')+'"></span>'
+        +(r.on.length?esc(r.on.map(p=>p.staff_name.split(' ')[0]).join(', ')):'nobody signed in')
+        +' · '+r.bills+' bills'+(r.rev>0?' · '+Math.round((r.rev-r.cogs)/r.rev*100)+'% margin':'')+'</div>'
+      +'<div class="bar"><i style="width:'+Math.round(r.rev/max*100)+'%"></i></div></div>'
+      +'<div class="r-v">'+fmt(r.rev)
+        +(d===null?'<small>no week-ago figure</small>'
+          :'<small class="'+(d>=0?'up':'down')+'">'+(d>=0?'▲ ':'▼ ')+Math.abs(d)+'% vs last '
+          +new Date().toLocaleDateString('en-IN',{weekday:'short'})+'</small>')
+      +'</div></div>';
+  }).join('')+'</div>';
+
+  // Advances are money he is holding against cakes not yet handed over. It is not income
+  // and it is not his — showing it beside profit stops it being spent twice.
+  const held=Sync.list('special_orders')
+    .filter(o=>(o.advance||0)>0&&['collected','cancelled'].indexOf(o.status||'')<0);
+  const heldTot=held.reduce((a,o)=>a+(o.advance||0),0);
+  $('n-adv').textContent=heldTot?fmt(heldTot):'';
+  $('adv').innerHTML=held.length
+    ?'<div class="card">'+held.slice(0,8).map(o=>'<div class="row"><div>'
+      +'<div class="r-n">'+esc(o.product||'Cake')+'</div>'
+      +'<div class="r-s">'+esc(o.customer||'')+' · due '+esc(o.needed_date||'?')+' · '+esc(Session.shopName(o.shop_id))+'</div></div>'
+      +'<div class="r-v">'+fmt(o.advance)+'<small>of '+fmt(o.price)+'</small></div></div>').join('')+'</div>'
+    :'<div class="empty">No advances outstanding.</div>';
+
+  const byItem={};
+  m.dmg.forEach(d=>{byItem[d.name]=(byItem[d.name]||0)+(d.value||0);});
+  const waste=Object.entries(byItem).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  $('n-waste').textContent=m.waste?fmt(m.waste):'';
+  $('waste').innerHTML=waste.length
+    ?'<div class="card">'+waste.map(w=>'<div class="row"><div><div class="r-n">'+esc(w[0])+'</div></div>'
+      +'<div class="r-v">'+fmt(w[1])+'</div></div>').join('')+'</div>'
+    :'<div class="empty">Nothing written off '+label+'.</div>';
+
+  // Hours only. Rates and salary stay off every screen — including this one, which he may
+  // well open with staff standing beside him.
+  //
+  // Deduped per person per day before anything is added up. Three sources can describe the
+  // same shift — a real punch from the login, the v20 bridge's assumed row, and seeded test
+  // data — and summing them inflated hours, which is what salary days are counted from.
+  const punches=Sync.list('punches').filter(p=>days.indexOf(p.date)>=0&&p.in_at
+    &&!/seed-/.test(String(p.id)));
+  const best={};
+  punches.forEach(p=>{
+    const key=(p.staff_phone||p.staff_name)+'|'+p.date;
+    const cur=best[key];
+    if(!cur){best[key]=p;return;}
+    // A real punch always beats an assumed one; between two of a kind, the earlier start.
+    const curAssumed=!!cur.assumed, newAssumed=!!p.assumed;
+    if(curAssumed&&!newAssumed){best[key]=p;return;}
+    if(!curAssumed&&newAssumed)return;
+    if(new Date(p.in_at)<new Date(cur.in_at))best[key]=p;
+  });
+  const byPerson={};
+  Object.values(best).forEach(p=>{
+    const k=p.staff_name||p.staff_phone;
+    const b=byPerson[k]=byPerson[k]||{name:k,shop:p.shop_id,h:0,days:new Set(),open:false,assumed:false};
+    // Clamped: a malformed row must never render negative hours to the owner.
+    b.h+=Math.max(0,(new Date(p.out_at||Date.now())-new Date(p.in_at))/3600000);
+    b.days.add(p.date);
+    if(!p.out_at)b.open=true;
+    if(p.assumed)b.assumed=true;
+  });
+  const people=Object.values(byPerson).sort((a,b)=>b.h-a.h);
+  $('n-staff').textContent=people.filter(p=>p.open).length+' in now';
+  $('staff').innerHTML=people.length
+    ?'<div class="card">'+people.map(p=>'<div class="row"><div><div class="r-n">'+esc(p.name)+'</div>'
+      +'<div class="r-s">'+esc(Session.shopName(p.shop))+' · '+p.days.size+' day'+(p.days.size===1?'':'s')
+      +(p.open?' · working now':'')+(p.assumed?' · assumed, not a real punch':'')+'</div></div>'
+      +'<div class="r-v">'+p.h.toFixed(1)+' h</div></div>').join('')+'</div>'
+    :'<div class="empty">No attendance recorded '+label+'.</div>';
+}
+
+function clock(){
+  $('when').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})
+    +'  ·  '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+}
+clock();setInterval(clock,30000);
+render();
+['sales','punches','dispatches','special_orders','expenses','damage','daybook','stock','requests']
+  .forEach(t=>Sync.subscribe(t,render));
+Session.chip();
+</script>
+</body>
+</html>
