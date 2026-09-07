@@ -104,7 +104,7 @@ input::placeholder{font-weight:500;color:#c3b8a8}
 
 <script src="supabase-config.js?v=32"></script>
 <script src="sync.js?v=32"></script>
-<script src="session.js?v=32"></script>
+<script src="session.js?v=33"></script>
 <script src="google.js?v=32"></script>
 <script>
 // The entry point. Every screen redirects here when nobody is signed in, and this file
@@ -380,7 +380,18 @@ function renderShare(){
 
   if(!window.GAuth)return;
 
+  // A person who just pressed Sign out must land on the sign-in screen, not be resumed
+  // into the account they were leaving. One-shot: cleared here, so the next visit
+  // auto-resumes normally.
+  let justOut=false;
+  try{justOut=sessionStorage.getItem('cs9_signed_out')==='1';sessionStorage.removeItem('cs9_signed_out');}catch(e){}
+
   (async function(){
+    if(justOut&&!back){
+      $('gbtn-t').textContent='Continue with Google';$('gbtn').disabled=false;
+      try{await GAuth.signOut();}catch(e){}
+      return;
+    }
     if(back){$('gbtn-t').textContent='Checking your Google account…';$('gbtn').disabled=true;}
     const r=await GAuth.boot();
     if(!r.ok){

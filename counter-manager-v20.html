@@ -6255,7 +6255,7 @@ document.addEventListener('input',function(e){
 
 <script src="supabase-config.js?v=32"></script>
 <script src="sync.js?v=32"></script>
-<script src="session.js?v=32"></script>
+<script src="session.js?v=33"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════════════════
 // LIVE BRIDGE — counter ↔ kitchen ↔ chef
@@ -6619,44 +6619,11 @@ document.addEventListener('input',function(e){
 })();
 </script>
 <script>
-// ═══ SETTINGS SHEET — one ⚙ in every screen header, same sheet everywhere ═══
-// Everything configurable already lives somewhere in More; this is the front door
-// so staff stop hunting through pills for it.
-(function(){
-  const jump=t=>{CMSettings.close();go('more');mTab(t);};
-  const shopNameRow=()=>{
-    const c=gsync();
-    const w=document.createElement('div');
-    w.className='cm-set-in';
-    const i=document.createElement('input');
-    i.type='text';i.placeholder='Shop name on reports — e.g. Clubhouse';i.value=c.shopName||'';
-    const b=document.createElement('button');b.type='button';b.textContent='Save';
-    b.onclick=()=>{const v=gsync();v.shopName=i.value.trim();ssync(v);toast(v.shopName?'✅ Shop name set — '+v.shopName:'Shop name cleared');CMSettings.refresh();};
-    w.appendChild(i);w.appendChild(b);
-    return w;
-  };
-  window.CM_SETTINGS={
-    title:'Counter Manager',
-    groups:[
-      {label:'This shop',items:[
-        {node:shopNameRow},
-        {icon:'🏪',label:'Shop code',hint:'Every phone in this shop uses the same code',value:gsync().shop||'not set',onClick:()=>jump('sync')},
-        {icon:'☁',label:'Cloud sync',hint:'Connection, auto-sync, send/receive mode, sync now',value:gsync().lastOk?'connected':'check',onClick:()=>jump('sync')}
-      ]},
-      {label:'Manage',items:[
-        {icon:'🛍',label:'Products & prices',hint:'Add, edit, reorder, categories',onClick:()=>jump('products')},
-        {icon:'👥',label:'Staff & attendance',hint:'Who works here, punch in/out records',onClick:()=>jump('staff')},
-        {icon:'🏪',label:'Shop inventory',hint:'Non-sale items — packaging, supplies',onClick:()=>jump('shopinv')},
-        {icon:'📸',label:'Snapshots',hint:'Saved end-of-day states you can restore',onClick:()=>jump('snapshots')},
-        {icon:'💾',label:'Data & backup',hint:'Export, import, CSV and Excel downloads',onClick:()=>jump('data')}
-      ]},
-      {label:'Reset',items:[
-        {icon:'⚠',label:'Clear all data on this phone',hint:'Password protected. Cannot be undone.',danger:true,onClick:()=>{CMSettings.close();om('m-clear-data');}}
-      ]}
-    ]
-  };
-})();
+// The sheet is defined in settings.js and is the same on every screen. This only
+// names the screen in its subtitle; the six rows are deliberately fixed.
+window.CM_SETTINGS={title:'Counter Manager'};
 </script>
-<script src="settings.js?v=32"></script>
+<script src="i18n.js?v=37"></script>
+<script src="settings.js?v=37"></script>
 </body>
 </html>

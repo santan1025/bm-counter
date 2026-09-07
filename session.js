@@ -328,10 +328,22 @@
         .reduce((a, p) => a + Math.max(0, (new Date(p.out_at || Date.now()) - new Date(p.in_at)) / 3600000), 0);
     },
 
+    // Signing out has to end BOTH sessions. Clearing only the local key left the Google
+    // session alive, and login.html — which auto-resumes a live Google session by design —
+    // signed the same person straight back in within a second. It looked like the button
+    // did nothing. The flag is belt and braces: even if Google's sign-out is slow or fails
+    // offline, login.html sees it and shows the sign-in screen instead of resuming.
     signOut(alsoPunchOut) {
       if (alsoPunchOut) this.punchOut();
       localStorage.removeItem(KEY);
-      location.href = 'login.html';
+      try { sessionStorage.setItem('cs9_signed_out', '1'); } catch (e) {}
+      const done = () => { location.href = 'login.html'; };
+      if (window.GAuth && GAuth.signOut) {
+        let sent = false;
+        const once = () => { if (!sent) { sent = true; done(); } };
+        setTimeout(once, 2500);            // never strand the user on a hung network
+        GAuth.signOut().then(once, once);
+      } else done();
     },
 
     require(allowed) {
