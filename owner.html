@@ -25,6 +25,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 #shopsw{flex-wrap:wrap}
 #shopsw button{flex:1 1 auto;min-width:96px;white-space:nowrap}
 #shopsw button.add{flex:0 0 auto;min-width:44px;color:var(--br);font-size:18px;line-height:1}
+/* Longhands, not a `font` shorthand: a shorthand needs a real family and rejects
+   `inherit`, so `font:800 12px inherit` was thrown away whole and these buttons rendered
+   at the browser's 13.3px default — wide enough to wrap "Move shop" onto a second line
+   that then hung outside a 32px-locked border. */
+.mini{border:1px solid var(--border);background:var(--card);color:var(--br);
+  font-family:inherit;font-size:12px;font-weight:800;line-height:1.2;white-space:nowrap;
+  padding:7px 11px;border-radius:9px;cursor:pointer;min-height:34px}
+.r-act{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.r-act button{border:1px solid var(--border);background:none;color:var(--sub);
+  font-family:inherit;font-size:11.5px;font-weight:700;line-height:1.2;white-space:nowrap;
+  padding:6px 10px;border-radius:8px;cursor:pointer;min-height:32px}
+.r-act button.warn{color:#c0392b;border-color:rgba(190,50,40,.4)}
+.r-off{opacity:.5}
+.r-tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
+  border:1px solid var(--border);border-radius:5px;padding:1px 5px;margin-left:6px;color:var(--sub)}
 
 /* Profit hero — the only number he actually asks about */
 .hero{background:var(--br);color:#fff;border-radius:17px;padding:17px 18px;margin-bottom:13px}
@@ -151,16 +166,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <div id="staff"></div>
   </div>
 
+  <div class="sec" id="sec-roster" style="display:none">
+    <div class="sec-h"><h2 id="h-roster">Who works where</h2><div class="sp"></div>
+      <button class="mini" onclick="addStaffFlow()">+ Add someone</button></div>
+    <div class="hint" id="merge-note" style="display:none;margin-bottom:9px"></div>
+    <div id="roster"></div>
+  </div>
+
   <div class="sec">
-    <div class="hint">Read only — nothing here changes a till. Salary days and the all-shops workbook export are the next pieces.</div>
+    <div class="hint">Takings, wastage and hours are read only — nothing here changes a till. Staff assignments are not: adding, moving or standing someone down takes effect on every phone.</div>
   </div>
 </div>
 
 <script src="supabase-config.js?v=32"></script>
-<script src="sync.js?v=39"></script>
-<script src="session.js?v=39"></script>
-<script src="i18n.js?v=39"></script>
-<script src="settings.js?v=39"></script>
+<script src="sync.js?v=43"></script>
+<script src="session.js?v=43"></script>
+<script src="i18n.js?v=43"></script>
+<script src="settings.js?v=43"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════════════════
 // OWNER SCREEN
@@ -385,6 +407,128 @@ function renderSwitcher(){
     +(boss?'<button class="add" title="Add a shop" onclick="addShopFlow()">+</button>':'');
 }
 
+// ── WHO WORKS WHERE ─────────────────────────────────────────────────
+// The one part of this screen that writes. It is here and nowhere else because whoever can
+// add a person can hand out a login — that is the owner's decision, not a manager's.
+// A transfer moves someone. Lending adds a shop without moving them, so the dashboard
+// still counts them as their home shop's staff while they can sign in at the shop they
+// are covering. Nobody is ever deleted: every punch and bill names a person, and deleting
+// the row would turn that history into an id that resolves to nothing.
+// Where PEOPLE can work is not the same list as where MONEY is counted. The kitchen is
+// excluded from shop totals — it sells nothing — but the chef and the kitchen manager work
+// there, so it must be a destination. Building staff pickers from sellingShops() made the
+// kitchen a one-way door: you could move the chef out and never back.
+const allLocations=()=>Object.keys(Session.shops);
+
+function roleLabel(r){return (Session.roles[r]||{}).label||r;}
+
+function addStaffFlow(){
+  if(!Session.canAdmin()){alert('Only the owner can add staff.');return;}
+  const name=prompt('Name:');if(!name)return;
+  const phone=(prompt('Phone number — this is their login. Leave blank for attendance only:','')||'').trim();
+  const ids=allLocations();
+  const shop=focus!=='*'?focus:(prompt('Which shop?\n\n'+ids.map(i=>i+' = '+Session.shopName(i)).join('\n'),ids[0])||'').trim().toUpperCase();
+  if(!shop)return;
+  // A kitchen posting is a kitchen job. Everything else defaults to counter, which is what
+  // almost every new person is.
+  const roleKeys=Object.keys(Session.roles).filter(r=>r!=='owner');
+  const suggested=Session.shopKind(shop)==='kitchen'?'chef':'counter';
+  const role=(prompt('What do they do?\n\n'+roleKeys.map(r=>r+' = '+roleLabel(r)).join('\n'),suggested)||'').trim().toLowerCase()||suggested;
+  const pin=phone?(prompt('A 4-digit PIN for '+name+', or blank to let them set their own on first sign-in:','')||'').trim():'';
+  const r=Session.addStaff({name:name,phone:phone,role:role,shop:shop,pin:pin});
+  if(!r.ok){alert(r.why);return;}
+  render();
+  alert('✅ '+name+' added to '+Session.shopName(shop)+' as '+roleLabel(role)
+    +(phone?'\n\nThey sign in with '+phone+(pin?' and that PIN.':' and set their own PIN.'):'\n\nAttendance only — no login until you add a phone number.'));
+}
+
+function transferFlow(id){
+  const a=Session.allStaff().find(x=>String(x.id)===String(id));if(!a)return;
+  const ids=allLocations().filter(s=>s!==a.shop);
+  if(!ids.length){alert('There is nowhere to move them to yet.');return;}
+  const to=(prompt('Move '+a.name+' from '+Session.shopName(a.shop)+' to:\n\n'
+    +ids.map(i=>i+' = '+Session.shopName(i)).join('\n'),ids[0])||'').trim().toUpperCase();
+  if(!to)return;
+  const r=Session.transferStaff(id,to);
+  if(!r.ok){alert(r.why);return;}
+  render();
+  alert('✅ '+r.name+' now works at '+r.shop+'.\n\nPast bills and punches keep the shop they happened in — a transfer does not move last month’s takings.');
+}
+
+function lendFlow(id){
+  const a=Session.allStaff().find(x=>String(x.id)===String(id));if(!a)return;
+  const covers=Session.staffShops(a).filter(s=>s!==a.shop);
+  const ids=allLocations().filter(s=>s!==a.shop);
+  if(!ids.length){alert('There is nowhere to lend them to yet.');return;}
+  const to=(prompt((covers.length?'Currently covering: '+covers.map(c=>Session.shopName(c)).join(', ')+'\n\n':'')
+    +'Lend '+a.name+' to which shop? Enter the same code again to stop.\n\n'
+    +ids.map(i=>i+' = '+Session.shopName(i)).join('\n'),ids[0])||'').trim().toUpperCase();
+  if(!to)return;
+  const r=Session.lendStaff(id,to);
+  if(!r.ok){alert(r.why);return;}
+  render();
+  alert(r.covers.length
+    ?'✅ '+r.name+' can now also work at '+r.covers.map(c=>Session.shopName(c)).join(', ')+'.'
+    :'✅ '+r.name+' is back to '+Session.shopName(a.shop)+' only.');
+}
+
+function standDown(id,active){
+  const a=Session.allStaff().find(x=>String(x.id)===String(id));if(!a)return;
+  if(active===false&&!confirm('Stand '+a.name+' down?\n\nThey can no longer sign in anywhere. Their hours and past bills stay exactly as they are, and you can bring them back any time.'))return;
+  const r=Session.setStaffActive(id,active);
+  if(!r.ok){alert(r.why);return;}
+  render();
+}
+window.addStaffFlow=addStaffFlow;window.transferFlow=transferFlow;
+window.lendFlow=lendFlow;window.standDown=standDown;
+
+function renderRoster(){
+  if(!Session.canAdmin()){$('sec-roster').style.display='none';return;}
+  $('sec-roster').style.display='';
+  // Nobody pressed a button for the staff merge, so nobody was told what it did — and it
+  // moved hours that get paid. Anything it had to assume is said here, once, where the
+  // person who can correct it is looking.
+  const rc=Session.mergeReceipt&&Session.mergeReceipt();
+  const rn=$('merge-note');
+  if(rc&&rc.punches){
+    const bits=[rc.punches+' punch'+(rc.punches===1?'':'es')+' brought across from the '+Session.shopName(rc.shop)+' tablet'];
+    if(rc.made)bits.push(rc.made+' added to the roster');
+    if(rc.closed)bits.push(rc.closed+' old shift'+(rc.closed===1?' had':'s had')+' no punch-out and '+(rc.closed===1?'was':'were')+' closed as assumed');
+    if(rc.negativeFixed)bits.push(rc.negativeFixed+(rc.negativeFixed===1?' crossed':' crossed')+' midnight and '+(rc.negativeFixed===1?'was':'were')+' corrected');
+    if(rc.unmatched)bits.push(rc.unmatched+' could not be matched to anyone — check the names');
+    rn.innerHTML='<b>Staff records were merged.</b> '+bits.join(' · ')
+      +'. Every merged punch was filed to '+esc(Session.shopName(rc.shop))
+      +', because the tablet’s attendance list does not record a shop.';
+    rn.style.display='';
+  }else if(rn){rn.style.display='none';}
+  const ids=allLocations();
+  const people=Session.allStaff()
+    .filter(a=>a.role!=='owner')
+    .filter(a=>focus==='*'||Session.staffShops(a).indexOf(focus)>=0)
+    .sort((x,y)=>(x.shop||'').localeCompare(y.shop||'')||x.name.localeCompare(y.name));
+  $('h-roster').textContent=focus==='*'?'Who works where':'Who works at '+Session.shopName(focus);
+  if(!people.length){$('roster').innerHTML='<div class="empty">Nobody on the roster yet.</div>';return;}
+  $('roster').innerHTML='<div class="card">'+people.map(a=>{
+    const off=a.active===false;
+    const covers=Session.staffShops(a).filter(s=>s!==a.shop);
+    return '<div class="row'+(off?' r-off':'')+'" style="display:block">'
+      +'<div style="display:flex;align-items:baseline;gap:6px">'
+        +'<div class="r-n">'+esc(a.name)+'</div>'
+        +(off?'<span class="r-tag">stood down</span>':'')
+        +(a.no_login?'<span class="r-tag">attendance only</span>':'')
+      +'</div>'
+      +'<div class="r-s">'+esc(Session.shopName(a.shop))+' · '+esc(roleLabel(a.role))
+        +(covers.length?' · covering '+covers.map(c=>esc(Session.shopName(c))).join(', '):'')
+        +(a.phone?' · '+esc(a.phone):' · no login')+'</div>'
+      +'<div class="r-act">'
+        +(ids.length>1?'<button onclick="transferFlow(\''+a.id+'\')">Move shop</button>':'')
+        +(ids.length>1?'<button onclick="lendFlow(\''+a.id+'\')">Lend out</button>':'')
+        +(off?'<button onclick="standDown(\''+a.id+'\',true)">Bring back</button>'
+             :'<button class="warn" onclick="standDown(\''+a.id+'\',false)">Stand down</button>')
+      +'</div></div>';
+  }).join('')+'</div>';
+}
+
 function render(){
   renderSwitcher();
   const days=dates(),m=money(days);
@@ -515,6 +659,8 @@ function render(){
       +(p.open?' · working now':'')+(p.assumed?' · assumed, not a real punch':'')+'</div></div>'
       +'<div class="r-v">'+p.h.toFixed(1)+' h</div></div>').join('')+'</div>'
     :'<div class="empty">No attendance recorded '+label+'.</div>';
+
+  renderRoster();
 }
 
 function clock(){
@@ -523,7 +669,10 @@ function clock(){
 }
 clock();setInterval(clock,30000);
 render();
-['sales','punches','dispatches','special_orders','expenses','damage','daybook','stock','requests']
+// staff_accounts and cm_shops repaint too: a shop or a person added on another device
+// must appear here without a reload.
+['sales','punches','dispatches','special_orders','expenses','damage','daybook','stock','requests',
+ 'staff_accounts','cm_shops']
   .forEach(t=>Sync.subscribe(t,render));
 Session.chip();
 </script>

@@ -331,8 +331,10 @@
       }
 
       const dev = deviceShop();
-      if (!(opts && opts.ignoreShop) && SHOP_BOUND.indexOf(match.role) >= 0 && match.shop !== '*' && dev && match.shop !== dev) {
-        return { ok: false, why: match.name + ' is the counter for ' + this.shopName(match.shop) + ', and this phone belongs to ' + this.shopName(dev) + '.' };
+      if (!(opts && opts.ignoreShop) && SHOP_BOUND.indexOf(match.role) >= 0 && match.shop !== '*' && dev
+          && this.staffShops(match).indexOf(dev) < 0) {
+        return { ok: false, why: match.name + ' works at ' + this.shopName(match.shop) + ', and this phone belongs to '
+          + this.shopName(dev) + '. Ask the owner to lend them to this shop.' };
       }
 
       // The owner decides which shop a tablet belongs to, and does it by signing in on
@@ -396,6 +398,100 @@
     // signed the same person straight back in within a second. It looked like the button
     // did nothing. The flag is belt and braces: even if Google's sign-out is slow or fails
     // offline, login.html sees it and shows the sign-in screen instead of resuming.
+    // Everyone on the roster INCLUDING attendance-only people, who have no phone and so
+    // are filtered out of the login list. The owner's screen manages this list; the login
+    // screen must never show it.
+    allStaff() {
+      if (!window.Sync) return SEED.slice();
+      return (Sync.list('staff_accounts') || []).filter(r => r && r.name);
+    },
+
+    // ── roster administration ───────────────────────────────────────────
+    // Owner only, and the owner's screen is the only place it is offered. Whoever can add
+    // a person can hand out a login, so this is not a manager's button.
+    canAdmin() {
+      const s = get();
+      return !!s && (s.role === 'owner' || s.role === 'tester');
+    },
+
+    addStaff(o) {
+      if (!this.canAdmin()) return { ok: false, why: 'Only the owner can add staff.' };
+      if (!window.Sync) return { ok: false, why: 'No connection to save this person.' };
+      if ((Sync.missingTables || []).indexOf('staff_accounts') >= 0)
+        return { ok: false, why: 'Run app-tables.sql in Supabase first — the staff table is not in the database yet.' };
+      const name = String(o.name || '').trim();
+      const phone = String(o.phone || '').replace(/\D/g, '');
+      const role = o.role || 'counter';
+      const shop = o.shop || deviceShop() || 'S1';
+      if (!name) return { ok: false, why: 'Give the person a name.' };
+      if (phone && phone.length !== 10) return { ok: false, why: 'A phone number must be 10 digits, or left blank.' };
+      if (!ROLES[role]) return { ok: false, why: 'Unknown role.' };
+      // No phone means no login — they exist so their hours are counted, nothing more.
+      const id = phone ? phone + ':' + role : 'att:' + Date.now().toString(36);
+      if (phone && this.allStaff().some(a => a.phone === phone && a.role === role && a.active !== false))
+        return { ok: false, why: name + ' already has a ' + ROLES[role].label + ' account on that number.' };
+      const row = {
+        id: id, phone: phone, name: name, role: role, shop: shop,
+        pin_hash: o.pin ? hash(id, String(o.pin)) : null,
+        no_login: !phone, hidden: false, temp: false, active: true,
+        cover_shops: null, shift_in: o.shiftIn || null, shift_out: o.shiftOut || null,
+        email: null, updated_at: new Date().toISOString()
+      };
+      Sync.put('staff_accounts', row);
+      return { ok: true, staff: row };
+    },
+
+    // A transfer MOVES someone. Their past punches and bills keep the shop they were rung
+    // up in — history is not rewritten by a transfer, or last month's takings would move
+    // between shops every time somebody changed branch.
+    transferStaff(id, shop) {
+      if (!this.canAdmin()) return { ok: false, why: 'Only the owner can move staff.' };
+      const a = this.allStaff().find(x => String(x.id) === String(id));
+      if (!a) return { ok: false, why: 'That person is not on the roster.' };
+      if (!SHOPS[shop]) return { ok: false, why: 'Unknown shop.' };
+      Sync.put('staff_accounts', Object.assign({}, a, { shop: shop, updated_at: new Date().toISOString() }));
+      return { ok: true, name: a.name, shop: SHOPS[shop] };
+    },
+
+    // Lending is additive: the home shop stays, so the dashboard still counts them as its
+    // staff, and they can sign in at the shop they are covering.
+    lendStaff(id, shop, on) {
+      if (!this.canAdmin()) return { ok: false, why: 'Only the owner can lend staff.' };
+      const a = this.allStaff().find(x => String(x.id) === String(id));
+      if (!a) return { ok: false, why: 'That person is not on the roster.' };
+      if (!SHOPS[shop]) return { ok: false, why: 'Unknown shop.' };
+      const list = String(a.cover_shops || '').split(',').map(s => s.trim()).filter(Boolean);
+      const i = list.indexOf(shop);
+      if (on === false || (on == null && i >= 0)) { if (i >= 0) list.splice(i, 1); }
+      else if (i < 0) list.push(shop);
+      Sync.put('staff_accounts', Object.assign({}, a, {
+        cover_shops: list.join(',') || null, updated_at: new Date().toISOString()
+      }));
+      return { ok: true, name: a.name, covers: list };
+    },
+
+    // Deactivate, never delete: every punch and every bill names a person, and a deleted
+    // row turns all of that history into an unresolvable id.
+    setStaffActive(id, active) {
+      if (!this.canAdmin()) return { ok: false, why: 'Only the owner can do this.' };
+      const a = this.allStaff().find(x => String(x.id) === String(id));
+      if (!a) return { ok: false, why: 'That person is not on the roster.' };
+      Sync.put('staff_accounts', Object.assign({}, a, {
+        active: !!active, updated_at: new Date().toISOString()
+      }));
+      return { ok: true, name: a.name, active: !!active };
+    },
+
+    // Which shops a person may sign in at — home plus anywhere they are lent to.
+    staffShops(a) {
+      if (!a) return [];
+      if (a.shop === '*') return Object.keys(SHOPS);
+      return [a.shop].concat(String(a.cover_shops || '').split(',').map(s => s.trim()).filter(Boolean))
+        .filter((v, i, arr) => v && arr.indexOf(v) === i);
+    },
+
+    mergeReceipt: () => mergeReceipt(),
+
     signOut(alsoPunchOut) {
       if (alsoPunchOut) this.punchOut();
       localStorage.removeItem(KEY);
@@ -454,6 +550,200 @@
       mount.appendChild(el);
     }
   };
+
+  // ── the staff merge ──────────────────────────────────────────────
+  // The counter app kept its OWN staff list and attendance in localStorage: no shop, no
+  // sync, PINs in plain text. The people staff punch against lived on one tablet, while
+  // the roster that grants logins lived elsewhere. Assign, transfer, lend and deactivate
+  // all need one list, so this moves the tablet's list and its punches onto the synced
+  // roster — once per device, automatically, no button.
+  //
+  // Punch ids are DERIVED from the record rather than generated, so running twice upserts
+  // the same rows instead of inventing duplicate hours. These hours get paid; duplicates
+  // would be paid twice. It also means a corrected run REPAIRS what an earlier one wrote,
+  // which is why the key is versioned:
+  //   v1 attached punches to nobody and left months-old shifts open;
+  //   v2 fixed that in the code but wrote a shop_assumed field to a column that does not
+  //      exist, so Postgres rejected every row, sync swallowed the error, and the receipt
+  //      reported a repair that never landed — worse than the fault it claimed to fix.
+  // v3 writes only columns the table actually has. Nothing invents a column again: the
+  // shop assumption is recorded in the receipt and shown on the owner's screen, which is
+  // where a person can act on it, and needs no column at all.
+  const MERGED = 'cs9_staff_merged_v3';
+  const ROLE_MAP = {
+    counter: 'counter', 'counter manager': 'counter', cashier: 'counter', sales: 'counter',
+    chef: 'chef', baker: 'chef', kitchen: 'kitchen_manager', 'kitchen manager': 'kitchen_manager',
+    manager: 'counter', owner: 'owner', helper: 'counter'
+  };
+
+  function mergeLocalStaff() {
+    try {
+      if (localStorage.getItem(MERGED)) return;
+      if ((window.Sync && Sync.missingTables || []).indexOf('staff_accounts') >= 0) return;
+
+      const local = JSON.parse(localStorage.getItem('cs9_stafflist') || '[]');
+      const att = JSON.parse(localStorage.getItem('cs9_attend') || '[]');
+      if (!local.length && !att.length) { localStorage.setItem(MERGED, 'nothing-to-do'); return; }
+
+      const shop = deviceShop() || 'S1';
+      const server = Sync.list('staff_accounts') || [];
+      const byKey = {};
+      const byName = {};
+      server.forEach(a => {
+        if (a.phone) byKey[a.phone + ':' + a.role] = a;
+        if (a.name) byName[String(a.name).trim().toLowerCase()] = a;
+      });
+
+      const idFor = {};
+      const notes = [];
+      let made = 0, matched = 0;
+
+      local.forEach(st => {
+        const name = String(st.name || '').trim();
+        if (!name) return;
+        const phone = String(st.phone || '').replace(/\D/g, '');
+        const role = ROLE_MAP[String(st.role || 'counter').toLowerCase()] || 'counter';
+        const key = phone + ':' + role;
+        if (phone && byKey[key]) {
+          // Already on the roster. Their shop is left exactly as it is — the roster is the
+          // authority, and switching a tablet on must not reassign anybody.
+          idFor[String(st.id)] = byKey[key].id;
+          matched++;
+          return;
+        }
+        // No phone means no login, only hours — which is the point of these records. The
+        // owner adds a number later and it becomes an ordinary account.
+        const rid = phone ? key : 'att:' + shop + ':' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        idFor[String(st.id)] = rid;
+        Sync.put('staff_accounts', {
+          id: rid, phone: phone, name: name, role: role, shop: shop,
+          pin_hash: st.pin ? hash(rid, String(st.pin)) : null,
+          no_login: !phone, hidden: false, temp: false, active: true,
+          cover_shops: null, shift_in: st.shIn || null, shift_out: st.shOut || null,
+          email: null, updated_at: new Date().toISOString()
+        });
+        made++;
+      });
+
+      const today = new Date().toISOString().slice(0, 10);
+      let punches = 0, closed = 0, fixedNeg = 0, unknown = 0;
+      const wrote = [];
+
+      att.forEach(a => {
+        if (!a || !a.date || !a.inTime) return;
+        const nm = String(a.name || '').trim();
+
+        // Identity, three ways. The tablet's staff list is the first choice but is often
+        // empty — it was empty on the shop's own tablet, which is how the first run
+        // attached ten punches to nobody. A name match against the roster is the fallback,
+        // and a punch that still resolves to no phone is reported rather than filed away.
+        let phone = null;
+        const viaList = idFor[String(a.staffId)] || '';
+        const head = viaList.split(':')[0];
+        if (/^\d{10}$/.test(head)) phone = head;
+        if (!phone && nm && byName[nm.toLowerCase()] && byName[nm.toLowerCase()].phone)
+          phone = byName[nm.toLowerCase()].phone;
+        if (!phone) { unknown++; notes.push('no roster match for "' + (nm || 'unnamed') + '" on ' + a.date); }
+
+        const iso = (d, v) => {
+          const t = new Date(d + 'T' + String(v).slice(0, 5) + ':00');
+          return isNaN(t) ? null : t;
+        };
+        const inT = iso(a.date, a.inTime);
+        if (!inT) return;
+        let outT = a.outTime ? iso(a.date, a.outTime) : null;
+        let assumed = false;
+
+        // A shift that ends before it starts crossed midnight. Left alone it renders as
+        // negative hours — one such row was already written.
+        if (outT && outT <= inT) {
+          outT = new Date(outT.getTime() + 86400000);
+          if (outT <= inT) { outT = null; }
+          fixedNeg++;
+        }
+
+        // An open punch from a past day is not a live shift: left open it accrues hours
+        // forever, and one merged row was already showing 837 of them. It is closed at the
+        // person's shift end where known, otherwise eight hours, and marked assumed so the
+        // owner's screen labels it "assumed, not a real punch" rather than passing it off
+        // as a real one.
+        if (!outT && a.date < today) {
+          const acct = phone ? server.find(s => s.phone === phone) : null;
+          const end = (acct && acct.shift_out) || (a.shOut || null);
+          const guess = end ? iso(a.date, end) : null;
+          outT = (guess && guess > inT) ? guess : new Date(inT.getTime() + 8 * 3600000);
+          assumed = true;
+          closed++;
+        }
+
+        Sync.put('punches', {
+          id: 'merged-' + shop + '-' + a.date + '-' + String(a.staffId) + '-' + String(a.inTime).replace(/\D/g, ''),
+          staff_phone: phone, staff_name: nm, role: a.role || 'counter',
+          shop_id: shop, date: a.date,
+          in_at: inT.toISOString(), out_at: outT ? outT.toISOString() : null,
+          in_verified: a.method === 'biometric',
+          assumed: assumed,
+          updated_at: new Date().toISOString()
+        });
+        punches++;
+        wrote.push({ id: 'merged-' + shop + '-' + a.date + '-' + String(a.staffId) + '-' + String(a.inTime).replace(/\D/g, ''), phone: phone });
+      });
+
+      const receipt = {
+        at: new Date().toISOString(), shop: shop, made: made, matched: matched,
+        punches: punches, closed: closed, negativeFixed: fixedNeg, unmatched: unknown,
+        shopAssumed: punches,
+        notes: notes.slice(0, 20)
+      };
+      localStorage.setItem(MERGED, JSON.stringify(receipt));
+      // The tablet's own copies are LEFT IN PLACE: the punch buttons keep working from
+      // them, nothing on screen changes today, and if this got anything wrong the originals
+      // are still there to read.
+      console.log('[staff merge]', receipt);
+
+      // Then CHECK it landed. A rejected write is invisible here — the row upserts into
+      // localStorage, the error is swallowed, and the server keeps the old values until the
+      // next read quietly overwrites the good ones. That is exactly how v2 reported a
+      // repair it had not made. If the values did not stick, the flag is cleared so the
+      // next load tries again, and it says so instead of claiming success.
+      setTimeout(() => {
+        try {
+          const now = Sync.list('punches') || [];
+          const bad = wrote.filter(w => {
+            const r = now.find(p => String(p.id) === w.id);
+            return !r || (w.phone && r.staff_phone !== w.phone);
+          });
+          if (!bad.length) return;
+          console.warn('[staff merge] ' + bad.length + ' of ' + wrote.length
+            + ' punches did not persist — the server rejected them. Retrying on next load.', bad.slice(0, 3));
+          localStorage.removeItem(MERGED);
+        } catch (e) {}
+      }, 6000);
+    } catch (e) {
+      console.warn('[staff merge] skipped', e);
+    }
+  }
+
+  // What the merge did, for the owner's screen to show. Nobody was asked to press a
+  // button, so nobody was told what happened — and it moved hours that get paid.
+  function mergeReceipt() {
+    try {
+      const r = JSON.parse(localStorage.getItem(MERGED) || 'null');
+      return (r && typeof r === 'object') ? r : null;
+    } catch (e) { return null; }
+  }
+
+  // Waits for the first server read: deciding who is "new" against a roster that has not
+  // loaded yet would recreate everybody.
+  function armMerge() {
+    let tries = 0;
+    const t = setInterval(() => {
+      if (localStorage.getItem(MERGED) || ++tries > 40) { clearInterval(t); return; }
+      if (window.Sync && Sync.settled && Sync.settled()) { clearInterval(t); mergeLocalStaff(); }
+    }, 500);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', armMerge);
+  else armMerge();
 
   // ── the unbound-tablet bar ───────────────────────────────────────────────
   // A tablet with no shop still takes bills: a till must never refuse a sale, the same

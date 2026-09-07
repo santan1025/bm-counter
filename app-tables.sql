@@ -45,6 +45,16 @@ alter table staff_accounts add column if not exists email      text;
 alter table staff_accounts add column if not exists hidden     boolean default false;
 alter table staff_accounts add column if not exists temp       boolean default false;
 alter table staff_accounts add column if not exists active     boolean default true;
+-- Shops this person can also work in, comma separated: a home shop plus cover. The owner
+-- lends someone to Mulund for a Sunday without moving them, so the dashboard still counts
+-- them as their home shop's staff while letting them sign in over there.
+alter table staff_accounts add column if not exists cover_shops text;
+-- Attendance-only people. They came off a tablet's punch list with no phone number, so
+-- they have no way to sign in — their hours are the point, not a login. Set false the
+-- moment a number is added.
+alter table staff_accounts add column if not exists no_login   boolean default false;
+alter table staff_accounts add column if not exists shift_in   text;
+alter table staff_accounts add column if not exists shift_out  text;
 alter table staff_accounts add column if not exists updated_at timestamptz default now();
 create index if not exists idx_staff_accounts_phone on staff_accounts(phone);
 create index if not exists idx_staff_accounts_email on staff_accounts(lower(email));
