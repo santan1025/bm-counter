@@ -22,7 +22,7 @@
 //      until it is fixed. Silence was the bug.
 
 (function () {
-  const TABLES = ['requests', 'dispatches', 'cm_sales', 'stock', 'special_orders', 'punches', 'notifications', 'expenses', 'damage', 'daybook', 'staff_accounts'];
+  const TABLES = ['requests', 'dispatches', 'cm_sales', 'stock', 'special_orders', 'punches', 'notifications', 'expenses', 'damage', 'daybook', 'staff_accounts', 'cm_shops'];
   const LKEY = t => 'cs9_sync_' + t;
   const QKEY = 'cs9_sync_queue';
   const CKEY = 'cs9_sync';
@@ -93,7 +93,7 @@
   let lastReason = '';
   // Two of this app's tables live in a project shared with another app, whose sales and
   // staff tables are uuid-keyed and cannot hold our rows. Ours are created by app-tables.sql.
-  const SQL_FOR = t => ((t === 'staff_accounts' || t === 'cm_sales') ? 'app-tables.sql' : 'supabase-schema.sql');
+  const SQL_FOR = t => ((t === 'staff_accounts' || t === 'cm_sales' || t === 'cm_shops') ? 'app-tables.sql' : 'supabase-schema.sql');
   const statusCbs = [];
   // Tables whose server contents have actually been READ at least once this session. An
   // empty local mirror means nothing until the table appears here: before the first read

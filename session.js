@@ -17,11 +17,43 @@
   const KEY = 'cs9_session';
   const TRUST = 'cs9_trusted_device';
 
+  // The three shops that used to BE the shop list. They are now only a fallback: the real
+  // list is the cm_shops table, mirrored by Sync. Adding a fourth shop is a row, not a
+  // deploy. This object's identity never changes — it is mutated in place when the server
+  // list arrives — because Session.shops is read synchronously all over the app.
   const SHOPS = {
     S1: 'MS Clubhouse',
     S2: 'Mulund Store',
     K1: 'Rabale Kitchens'
   };
+  const KIND = { S1: 'shop', S2: 'shop', K1: 'kitchen' };
+  const SHOPS_CACHE = 'cs9_shops';
+
+  // Cached first, so a tablet that opens before the network answers still knows the shop
+  // names it saw yesterday. Then the server list, which wins.
+  function mergeShops(rows) {
+    if (!rows || !rows.length) return false;
+    let changed = false;
+    rows.forEach(r => {
+      if (!r || !r.id || r.active === false) return;
+      if (SHOPS[r.id] !== r.name) { SHOPS[r.id] = r.name; changed = true; }
+      KIND[r.id] = r.kind || 'shop';
+    });
+    return changed;
+  }
+  try { mergeShops(JSON.parse(localStorage.getItem(SHOPS_CACHE))); } catch (e) {}
+
+  function loadShops() {
+    if (!window.Sync || !Sync.list) return;
+    const rows = Sync.list('cm_shops') || [];
+    if (!rows.length) return;
+    mergeShops(rows);
+    try { localStorage.setItem(SHOPS_CACHE, JSON.stringify(rows)); } catch (e) {}
+  }
+  if (window.Sync && Sync.subscribe) {
+    loadShops();
+    Sync.subscribe('cm_shops', loadShops);
+  }
 
   const ROLES = {
     counter:         { label: 'Counter Manager', page: 'counter-manager-v20.html', icon: '🧾' },
@@ -139,6 +171,34 @@
   window.Session = {
     roles: ROLES,
     shops: SHOPS,
+    shopKind: id => KIND[id] || 'shop',
+    // Selling shops only. The kitchen makes stock and never rings up a customer, so it
+    // must not land in a shop total or a shop switcher — the owner asked for it kept
+    // separate, and adding it to takings would be a lie.
+    sellingShops: () => Object.keys(SHOPS).filter(id => (KIND[id] || 'shop') === 'shop'),
+    reloadShops: loadShops,
+
+    // Owner-only. A shop is added in the app, and the row syncs to every device.
+    addShop(id, name, kind) {
+      const s = get();
+      if (!s || (s.role !== 'owner' && s.role !== 'tester')) return { ok: false, why: 'Only the owner can add a shop.' };
+      id = String(id || '').trim().toUpperCase();
+      name = String(name || '').trim();
+      if (!/^[A-Z][A-Z0-9]{0,5}$/.test(id)) return { ok: false, why: 'Shop code must be short letters and numbers, like S3.' };
+      if (!name) return { ok: false, why: 'Give the shop a name.' };
+      if (!window.Sync) return { ok: false, why: 'No connection to save the shop.' };
+      // Without the table the row lands in localStorage only and reaches no other device,
+      // while the screen says it was added — a false success is worse than a refusal.
+      if ((Sync.missingTables || []).indexOf('cm_shops') >= 0) {
+        return { ok: false, why: 'Run app-tables.sql in Supabase first — the shop list table is not in the database yet, so a new shop could not reach the other phones.' };
+      }
+      Sync.put('cm_shops', {
+        id: id, name: name, kind: kind || 'shop', active: true,
+        updated_at: new Date().toISOString()
+      });
+      loadShops();
+      return { ok: true, id: id, name: name };
+    },
     shopName: id => (id === '*' ? 'All shops' : (SHOPS[id] || id || '')),
     list: roster,
     rosterProvisional: rosterProvisional,
@@ -275,8 +335,11 @@
         return { ok: false, why: match.name + ' is the counter for ' + this.shopName(match.shop) + ', and this phone belongs to ' + this.shopName(dev) + '.' };
       }
 
-      // A fresh phone learns which shop it is from the first counter person who signs in.
-      if (match.role === 'counter' && !dev) setDeviceShop(match.shop);
+      // The owner decides which shop a tablet belongs to, and does it by signing in on
+      // that tablet once. It used to bind itself to the first counter person who signed
+      // in, which is how two phones ended up on different shops and silently stopped
+      // sharing anything. A counter person no longer changes what shop a phone is.
+      if (!dev && (match.role === 'owner' || match.role === 'tester') && match.shop !== '*') setDeviceShop(match.shop);
 
       const sess = {
         phone: match.phone, name: match.name, role: match.role,
@@ -364,8 +427,7 @@
     // screen or another it lands over a heading or — worse — over a button, and this one
     // signs you out. It renders only into an explicit anchor each screen places where its
     // own layout has room, and does nothing at all if there is no anchor.
-    chip() {
-      const sess = get();
+    chip() {      const sess = get();
       const mount = document.querySelector('[data-session-chip]');
       if (!sess || !mount || mount.dataset.filled) return;
       mount.dataset.filled = '1';
@@ -392,6 +454,47 @@
       mount.appendChild(el);
     }
   };
+
+  // ── the unbound-tablet bar ───────────────────────────────────────────────
+  // A tablet with no shop still takes bills: a till must never refuse a sale, the same
+  // reason writes queue offline instead of failing. But the day's rows would carry no
+  // shop, so it says so continuously until the owner sets it, rather than discovering it
+  // at the day close.
+  function unboundBar() {
+    const sess = get();
+    if (!sess || sess.role === 'owner' || sess.role === 'tester') return;
+    if (deviceShop() || sess.allShops) return;
+    if (document.getElementById('cs9-unbound')) return;
+    const b = document.createElement('div');
+    b.id = 'cs9-unbound';
+    b.setAttribute('data-no-i18n', '');
+    b.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:99998;background:#8a5a12;color:#fff;'
+      + 'font:600 12.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:9px 14px;'
+      + 'display:flex;align-items:center;gap:9px;box-shadow:0 3px 14px rgba(0,0,0,.25)';
+    b.innerHTML = '<span style="font-size:15px">⚠</span><span style="flex:1">This tablet has no shop yet — '
+      + 'keep working, but ask the owner to set it. Today’s figures cannot be counted into a shop until then.</span>';
+    document.body.appendChild(b);
+    // A fixed bar reserves no space, so it sat on top of the page header — which is where
+    // the settings gear lives, the one control that fixes the very thing the bar reports.
+    // The page is pushed down by exactly the bar's height instead. (sync.js's bar docks at
+    // the bottom for the same reason; two bars at the bottom would stack and hide it.)
+    const pad = () => {
+      const h = b.offsetHeight || 40;
+      const base = parseFloat(getComputedStyle(document.body).paddingTop) || 0;
+      if (!document.body.dataset.cs9Pad) {
+        document.body.dataset.cs9Pad = String(base);
+        document.body.style.paddingTop = (base + h) + 'px';
+      }
+    };
+    pad();
+    window.addEventListener('resize', () => {
+      if (!document.body.dataset.cs9Pad) return;
+      const base = parseFloat(document.body.dataset.cs9Pad) || 0;
+      document.body.style.paddingTop = (base + (b.offsetHeight || 40)) + 'px';
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', unboundBar);
+  else unboundBar();
 
   // The old roster lived in this key, with PINs in plain text and a tester account. It is
   // superseded by the shared table and is removed rather than left to confuse a later read.

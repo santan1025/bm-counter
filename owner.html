@@ -22,6 +22,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .range{display:flex;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:13px}
 .range button{flex:1;border:none;background:none;padding:10px 4px;border-radius:9px;font-size:13px;font-weight:800;font-family:inherit;color:var(--sub);cursor:pointer}
 .range button.on{background:var(--br);color:#fff}
+#shopsw{flex-wrap:wrap}
+#shopsw button{flex:1 1 auto;min-width:96px;white-space:nowrap}
+#shopsw button.add{flex:0 0 auto;min-width:44px;color:var(--br);font-size:18px;line-height:1}
 
 /* Profit hero — the only number he actually asks about */
 .hero{background:var(--br);color:#fff;border-radius:17px;padding:17px 18px;margin-bottom:13px}
@@ -104,6 +107,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </div>
 
 <div class="wrap">
+  <div class="range" id="shopsw"></div>
   <div class="range">
     <button class="on" id="r-today" onclick="setRange('today')">Today</button>
     <button id="r-week" onclick="setRange('week')">7 days</button>
@@ -128,7 +132,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   </div>
 
   <div class="sec">
-    <div class="sec-h"><h2>Shop by shop</h2><div class="sp"></div><div class="n" id="n-shops"></div></div>
+    <div class="sec-h"><h2 id="h-shops">Shop by shop</h2><div class="sp"></div><div class="n" id="n-shops"></div></div>
     <div id="shops"></div>
   </div>
 
@@ -153,10 +157,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </div>
 
 <script src="supabase-config.js?v=32"></script>
-<script src="sync.js?v=32"></script>
-<script src="session.js?v=33"></script>
-<script src="i18n.js?v=37"></script>
-<script src="settings.js?v=37"></script>
+<script src="sync.js?v=39"></script>
+<script src="session.js?v=39"></script>
+<script src="i18n.js?v=39"></script>
+<script src="settings.js?v=39"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════════════════
 // OWNER SCREEN
@@ -177,8 +181,15 @@ const fmt=n=>'₹'+Math.round(n||0).toLocaleString('en-IN');
 const fmtK=n=>Math.abs(n)>=100000?'₹'+(n/100000).toFixed(1)+'L':Math.abs(n)>=1000?'₹'+Math.round(n/1000)+'k':fmt(n);
 const dk=d=>d.toISOString().slice(0,10);
 const td=()=>dk(new Date());
-// Derived, not listed: a shop added in session.js appears here with no further edit.
-const SHOP_IDS=Object.keys(Session.shops).filter(id=>id!=='K1');
+// Derived, never listed: the shops come from the cm_shops table via Session, so opening a
+// fourth shop is a row in the app, not an edit here. The kitchen is excluded on purpose —
+// it makes stock and never rings up a customer, so counting it in shop takings would lie.
+const allShops=()=>Session.sellingShops();
+// '*' is every shop added together; anything else focuses one. Filtering happens in
+// money() at the source, so every number on the screen agrees with the switcher.
+let focus='*';
+const shopIds=()=>focus==='*'?allShops():[focus];
+const inFocus=r=>focus==='*'||r.shop_id===focus;
 let range='today';
 
 function dates(){
@@ -211,9 +222,9 @@ function costMap(){
 
 function money(days){
   const cm=costMap();
-  const sales=Sync.list('cm_sales').filter(s=>days.indexOf(s.date)>=0&&real(s));
-  const exps=Sync.list('expenses').filter(e=>days.indexOf(e.date)>=0&&real(e));
-  const dmg=Sync.list('damage').filter(d=>days.indexOf(d.date)>=0&&real(d));
+  const sales=Sync.list('cm_sales').filter(s=>days.indexOf(s.date)>=0&&real(s)&&inFocus(s));
+  const exps=Sync.list('expenses').filter(e=>days.indexOf(e.date)>=0&&real(e)&&inFocus(e));
+  const dmg=Sync.list('damage').filter(d=>days.indexOf(d.date)>=0&&real(d)&&inFocus(d));
   let rev=0,cogs=0,unpriced=0,noCost=0;
   sales.forEach(s=>{
     rev+=s.total||0;
@@ -235,15 +246,15 @@ function money(days){
 // Ranked, because on a phone only the first three are read.
 function exceptions(m){
   const out=[],hour=new Date().getHours(),day=td();
-  const books=Sync.list('daybook');
-  const punches=Sync.list('punches').filter(p=>p.date===day);
-  const specs=Sync.list('special_orders');
-  const reqs=Sync.list('requests').filter(r=>r.date===day);
+  const books=Sync.list('daybook').filter(inFocus);
+  const punches=Sync.list('punches').filter(p=>p.date===day&&inFocus(p));
+  const specs=Sync.list('special_orders').filter(inFocus);
+  const reqs=Sync.list('requests').filter(inFocus).filter(r=>r.date===day);
 
   // A shop that has sold nothing by mid-afternoon is not a slow day; it is a tablet that
   // is off, or nobody signed in.
   if(range==='today'&&hour>=14){
-    SHOP_IDS.forEach(id=>{
+    shopIds().forEach(id=>{
       const rev=m.sales.filter(s=>s.shop_id===id).reduce((a,s)=>a+(s.total||0),0);
       if(rev>0)return;
       const on=punches.some(p=>p.shop_id===id&&p.in_at);
@@ -257,7 +268,7 @@ function exceptions(m){
   // traceable to a person or a day.
   const yd=new Date();yd.setDate(yd.getDate()-1);
   const ydk=dk(yd);
-  SHOP_IDS.forEach(id=>{
+  shopIds().forEach(id=>{
     const b=books.find(x=>x.shop_id===id&&x.date===ydk);
     const traded=Sync.list('cm_sales').some(s=>s.shop_id===id&&s.date===ydk&&real(s));
     if(traded&&(!b||!b.closed))
@@ -340,9 +351,45 @@ function exceptions(m){
 }
 
 // ── RENDER ───────────────────────────────────────────────────────────────
+// ── SHOP SWITCHER ────────────────────────────────────────────────
+// Built from the synced shop list, so a shop added on any device appears here. "All shops"
+// stays the default — it is the question this screen exists to answer — and a tap focuses
+// one without leaving the page.
+function setFocus(id){focus=id;render();}
+window.setFocus=setFocus;
+
+function addShopFlow(){
+  const s=Session.current();
+  if(!s||(s.role!=='owner'&&s.role!=='tester')){alert('Only the owner can add a shop.');return;}
+  const name=prompt('Name of the new shop, as staff should see it:');
+  if(!name)return;
+  const id=prompt('Short code for it — this is what ties its phones together:','S'+(allShops().length+1));
+  if(!id)return;
+  const r=Session.addShop(id,name,'shop');
+  if(!r.ok){alert(r.why);return;}
+  Session.reloadShops();render();
+  alert('✅ '+r.name+' added as '+r.id+'.\n\nNext: sign in on that shop\u2019s tablet and set its shop in Settings — until then its phones share nothing.');
+}
+window.addShopFlow=addShopFlow;
+
+function renderSwitcher(){
+  const ids=allShops();
+  const sess=Session.current();
+  const boss=sess&&(sess.role==='owner'||sess.role==='tester');
+  if(ids.length<2&&!boss){$('shopsw').style.display='none';return;}
+  $('shopsw').style.display='';
+  $('shopsw').innerHTML=
+    '<button class="'+(focus==='*'?'on':'')+'" onclick="setFocus(\'*\')">All shops</button>'
+    +ids.map(id=>'<button class="'+(focus===id?'on':'')+'" onclick="setFocus(\''+id+'\')">'
+      +esc(Session.shopName(id))+'</button>').join('')
+    +(boss?'<button class="add" title="Add a shop" onclick="addShopFlow()">+</button>':'');
+}
+
 function render(){
+  renderSwitcher();
   const days=dates(),m=money(days);
   const label=range==='today'?'today':range==='week'?'last 7 days':'this month';
+  document.querySelector('.top-r h1').textContent='📊 '+(focus==='*'?'All shops':Session.shopName(focus));
 
   $('hero-l').textContent='Profit '+label;
   const p=$('profit');
@@ -365,8 +412,8 @@ function render(){
       +'no cash gaps, no orders overdue.</span></div>';
 
   // Cash he has not collected. The number that decides whether he drives out tonight.
-  const books=Sync.list('daybook');
-  const cashRows=SHOP_IDS.map(id=>{
+  const books=Sync.list('daybook').filter(inFocus);
+  const cashRows=shopIds().map(id=>{
     const b=books.filter(x=>x.shop_id===id).sort((a,c)=>c.date.localeCompare(a.date))[0];
     return {id:id,name:Session.shopName(id),box:b?(b.cashbox||0):0,as:b?b.date:null};
   }).filter(r=>r.box>0);
@@ -381,7 +428,7 @@ function render(){
   // Shop by shop, each against its own same weekday last week — comparing one shop to
   // another says nothing, they have different footfall.
   const cm=costMap();
-  const rows=SHOP_IDS.map(id=>{
+  const rows=shopIds().map(id=>{
     const mine=m.sales.filter(s=>s.shop_id===id);
     const rev=mine.reduce((a,s)=>a+(s.total||0),0);
     let cogs=0;mine.forEach(s=>(s.items||[]).forEach(i=>{const c=cm[i.name];if(c!=null)cogs+=c*(i.qty||0);}));
@@ -392,6 +439,7 @@ function render(){
     return {id,name:Session.shopName(id),rev,cogs,bills:mine.length,prev,on};
   });
   const max=Math.max.apply(null,rows.map(r=>r.rev).concat([1]));
+  $('h-shops').textContent=focus==='*'?'Shop by shop':'This shop';
   $('n-shops').textContent=fmt(m.rev);
   $('shops').innerHTML='<div class="card">'+rows.map(r=>{
     const d=r.prev>0?Math.round((r.rev-r.prev)/r.prev*100):null;
@@ -410,7 +458,7 @@ function render(){
 
   // Advances are money he is holding against cakes not yet handed over. It is not income
   // and it is not his — showing it beside profit stops it being spent twice.
-  const held=Sync.list('special_orders')
+  const held=Sync.list('special_orders').filter(inFocus)
     .filter(o=>(o.advance||0)>0&&['collected','cancelled'].indexOf(o.status||'')<0);
   const heldTot=held.reduce((a,o)=>a+(o.advance||0),0);
   $('n-adv').textContent=heldTot?fmt(heldTot):'';
@@ -436,7 +484,7 @@ function render(){
   // Deduped per person per day before anything is added up. Three sources can describe the
   // same shift — a real punch from the login, the v20 bridge's assumed row, and seeded test
   // data — and summing them inflated hours, which is what salary days are counted from.
-  const punches=Sync.list('punches').filter(p=>days.indexOf(p.date)>=0&&p.in_at
+  const punches=Sync.list('punches').filter(p=>inFocus(p)&&days.indexOf(p.date)>=0&&p.in_at
     &&!/seed-/.test(String(p.id)));
   const best={};
   punches.forEach(p=>{

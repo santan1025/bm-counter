@@ -181,6 +181,41 @@ body.dark .cm-set-in input{border-color:rgba(255,255,255,.16)}
     return b;
   }
 
+  // The shop a tablet belongs to is now the owner's decision, made on the tablet. A picker
+  // in the sheet, not a typed code: typing S2 on the S1 tablet is exactly the fault that
+  // cost a week, and a list of real shop names cannot be mistyped.
+  function shopPicker() {
+    const cur = (window.Session && Session.deviceShop && Session.deviceShop()) || null;
+    const ids = Object.keys((window.Session && Session.shops) || {});
+    const wrap = document.createElement('div');
+    wrap.className = 'cm-set-list';
+    ids.forEach(id => {
+      const kind = window.Session && Session.shopKind ? Session.shopKind(id) : 'shop';
+      wrap.appendChild(row({
+        icon: kind === 'kitchen' ? '🍞' : '🏪',
+        label: Session.shops[id],
+        hint: id + (kind === 'kitchen' ? ' · kitchen' : '') + (id === cur ? ' · this tablet' : ''),
+        value: id === cur ? '✓' : '',
+        onClick: () => {
+          if (id === cur) { build(); return; }
+          if (!confirm('Set this tablet to ' + Session.shops[id] + '?\n\nIt will share data with the other phones in that shop, and stop sharing with '
+            + (cur ? Session.shops[cur] : 'any other shop') + '.')) return;
+          Session.setDeviceShop(id);
+          const v = cfg(); v.shop = id; save(v);
+          note('✅ This tablet is now ' + Session.shops[id]);
+          build();
+        }
+      }));
+    });
+    const h = document.createElement('div');
+    h.className = 'cm-hint';
+    h.textContent = 'Every phone in one shop must show the same shop here, or they will not share data.';
+    wrap.appendChild(h);
+    return wrap;
+  }
+
+  let showPicker = false;
+
   function build() {
     const sheet = document.getElementById('cm-set-sheet');
     const s = sess(), c = cfg(), boss = isBoss();
@@ -213,11 +248,14 @@ body.dark .cm-set-in input{border-color:rgba(255,255,255,.16)}
     sheet.appendChild(group('Shop', [
       shopNameBlock(),
       boss && row({
-        icon: '🏪', label: 'Shop code',
-        hint: 'Every phone in this shop must show the same code',
-        value: c.shop || 'not set',
-        onClick: () => { close(); if (window.go && window.mTab) { go('more'); mTab('sync'); } else location.href = 'check.html'; }
-      })
+        icon: '🏪', label: 'Which shop is this tablet?',
+        hint: 'Every phone in this shop must show the same one',
+        value: (window.Session && Session.deviceShop && Session.deviceShop())
+          ? Session.shops[Session.deviceShop()] || Session.deviceShop()
+          : 'not set',
+        onClick: () => { showPicker = !showPicker; build(); }
+      }),
+      boss && showPicker && shopPicker
     ]));
 
     sheet.appendChild(group('This phone', [

@@ -81,11 +81,37 @@ alter table cm_sales add column if not exists is_test    boolean default false;
 alter table cm_sales add column if not exists updated_at timestamptz default now();
 create index if not exists idx_cm_sales_day on cm_sales(date, shop_id);
 
+-- ── the shop list ─────────────────────────────────────────────
+-- The shops were a hardcoded object in session.js, so opening a fourth shop meant
+-- editing the app and redeploying it. They live here instead: one row, no deploy.
+-- Named cm_shops, not shops — the other app owns a uuid-keyed shops table with
+-- foreign keys into it, and our ids are short text codes like S1.
+-- kind: 'shop' sells to customers and counts in shop totals; 'kitchen' makes stock
+-- and is deliberately excluded from them.
+create table if not exists cm_shops (
+  id          text primary key,
+  name        text not null,
+  kind        text default 'shop',
+  active      boolean default true,
+  updated_at  timestamptz default now()
+);
+alter table cm_shops add column if not exists kind       text default 'shop';
+alter table cm_shops add column if not exists active     boolean default true;
+alter table cm_shops add column if not exists updated_at timestamptz default now();
+
+-- The three that were in the code. Existing rows are left alone, so a rename made
+-- in the app is not overwritten the next time this file is run.
+insert into cm_shops (id, name, kind) values
+  ('S1', 'MS Clubhouse',    'shop'),
+  ('S2', 'Mulund Store',    'shop'),
+  ('K1', 'Rabale Kitchens', 'kitchen')
+on conflict (id) do nothing;
+
 -- ── realtime ─────────────────────────────────────────────────────────────
 do $$
 declare t text;
 begin
-  foreach t in array array['staff_accounts','cm_sales']
+  foreach t in array array['staff_accounts','cm_sales','cm_shops']
   loop
     begin
       execute format('alter publication supabase_realtime add table %I', t);
@@ -104,7 +130,7 @@ end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['staff_accounts','cm_sales']
+  foreach t in array array['staff_accounts','cm_sales','cm_shops']
   loop
     execute format('alter table public.%I enable row level security', t);
     execute format('drop policy if exists app_read on public.%I', t);
