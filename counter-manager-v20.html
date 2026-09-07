@@ -892,6 +892,15 @@ body.dark .qd-warn{background:#3a2a10;border-color:#7a5520;color:#f0c98a}
       <label>Name shown to the customer</label><input type="text" id="upi-name" placeholder="e.g. BM Ventures">
       <button class="btn btn-gold" style="margin-bottom:0" onclick="saveUpiCfg()">Save</button>
     </div>
+    <div class="card">
+      <div class="sec-title">📺 Customer display</div>
+      <div style="font-size:12px;color:var(--sub);line-height:1.5;margin-bottom:10px">Open this link on a spare phone and stand it facing the customer. It shows the bill as you tap it in, then the payment QR, then a thank-you — and it cannot ring up a sale, so nothing can go wrong on that side. Leave it on a charger.</div>
+      <div id="cd-url" style="font-size:12px;font-weight:700;color:var(--br);word-break:break-all;background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px">—</div>
+      <div class="btn-row">
+        <button class="btn btn-gold" style="margin-bottom:0" onclick="cdCopyUrl()">📋 Copy link</button>
+        <button class="btn btn-out" style="margin-bottom:0" onclick="cdOpenHere()">Open it</button>
+      </div>
+    </div>
     <div class="card" style="border:2px solid var(--gold)">
       <div class="sec-title">☁ Cloud Sync</div>
       <div id="sync-status" style="font-size:14px;font-weight:700;margin-bottom:6px"></div>
@@ -1225,7 +1234,7 @@ create policy "shop access" on cm_records
 <div style="display:flex;justify-content:center;background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px"><canvas id="payqr-cv" style="width:100%;max-width:250px;height:auto;image-rendering:pixelated"></canvas></div>
 <div id="payqr-to" style="text-align:center;font-size:12px;color:var(--sub);margin-bottom:12px"></div>
 <button class="btn btn-gr" onclick="payqrDone()">✓ Paid — save the sale</button>
-<button class="btn btn-out" style="margin-bottom:0" onclick="cm('m-payqr')">Back</button>
+<button class="btn btn-out" style="margin-bottom:0" onclick="cm('m-payqr');try{cdBill()}catch(e){}">Back</button>
 </div></div>
 <!-- CLEAR DATA MODAL -->
 <div class="mbg" id="m-clear-data"><div class="modal"><div class="m-drag"></div><button class="m-close" onclick="cm('m-clear-data')">✕</button>
@@ -1854,7 +1863,7 @@ function renderCartTotals(){const sub=cart.reduce((a,i)=>a+i.price*i.qty,0),disc
 function renderCart(){
   const wrap=document.getElementById('cart-wrap');
   const stick=document.getElementById('sale-sticky'),stickB=document.getElementById('sale-sticky-btn');
-  if(!cart.length){wrap.style.display='none';if(stick)stick.style.display='none';return;}
+  if(!cart.length){wrap.style.display='none';if(stick)stick.style.display='none';try{cdIdle();}catch(e){}return;}
   wrap.style.display='block';
   const sub=cart.reduce((a,i)=>a+i.price*i.qty,0),disc=parseInt(document.getElementById('c-disc')?.value)||0,xtra=parseInt(document.getElementById('c-extra')?.value)||0,tot=Math.max(0,sub-disc)+xtra;
   document.getElementById('c-sub').textContent=fmt(sub);document.getElementById('c-disc-show').textContent='-'+fmt(disc);document.getElementById('c-tot').textContent=fmt(tot);const xr=document.getElementById('c-extra-row');if(xr){xr.style.display=xtra>0?'flex':'none';document.getElementById('c-extra-show').textContent='+'+fmt(xtra);}
@@ -1873,6 +1882,7 @@ function renderCart(){
     const splitCash=parseInt(document.getElementById('sp-c')?.value)||0;
     renderCashRows(splitCash);
   }
+  try{cdBill();}catch(e){}
 }
 function setPay(m){pay=m;renderCart();}
 function calcSplit(){
@@ -5651,6 +5661,7 @@ function openPayQR(){
   document.getElementById('payqr-to').innerHTML='Paying <strong>'+_wEsc(u.name||u.vpa)+'</strong><br>'+_wEsc(u.vpa)+' · Ref '+ref+
     (pay==='split'?'<br><span style="color:var(--or)">UPI part of a split bill — collect the cash separately</span>':'');
   om('m-payqr');
+  try{cdQr(amt,upiString(amt,ref));}catch(e){}
 }
 function payqrDone(){cm('m-payqr');setTimeout(confirmSale,80);}
 // The reference printed under the QR is what lets him match a UPI credit in the bank
@@ -6622,6 +6633,74 @@ document.addEventListener('input',function(e){
 // The sheet is defined in settings.js and is the same on every screen. This only
 // names the screen in its subtitle; the six rows are deliberately fixed.
 window.CM_SETTINGS={title:'Counter Manager'};
+</script>
+<script src="display.js?v=43"></script>
+<script>
+// ════════════════════════════════════════════════════════════════════════
+// CUSTOMER DISPLAY — this phone drives the board on the spare phone
+// ════════════════════════════════════════════════════════════════════════
+// Every call below is wrapped by its caller and swallows its own errors. If the wifi is
+// gone, or display.js never loaded, selling carries on exactly as before — the board is a
+// bonus and is never allowed to become a dependency.
+let _cdHost=null,_cdHostShop='';
+function cdShopId(){
+  try{ if(window.Session&&Session.deviceShop){const d=Session.deviceShop();if(d)return d;} }catch(e){}
+  try{ const l=getLoc();if(l&&l.id)return l.id; }catch(e){}
+  return 'S1';
+}
+function cdShopLabel(){
+  try{ if(window.Session&&Session.shopName)return Session.shopName(cdShopId()); }catch(e){}
+  try{ return (getLoc()||{}).name||''; }catch(e){ return ''; }
+}
+function cdSend(p){
+  if(!window.CustomerDisplay)return;
+  const s=cdShopId();
+  if(!_cdHost||_cdHostShop!==s){_cdHostShop=s;_cdHost=CustomerDisplay.host(s);}
+  p.shop=cdShopLabel();
+  _cdHost.send(p);
+}
+function cdIdle(){cdSend({state:'idle'});}
+function cdBill(){
+  if(!cart.length){cdIdle();return;}
+  const sub=cart.reduce((a,i)=>a+i.price*i.qty,0);
+  const disc=parseInt(document.getElementById('c-disc')?.value)||0;
+  const xtra=parseInt(document.getElementById('c-extra')?.value)||0;
+  cdSend({state:'bill',total:Math.max(0,sub-disc)+xtra,
+    items:cart.map(i=>({n:i.name,q:i.qty,a:i.price*i.qty}))});
+}
+function cdQr(amt,upi){cdSend({state:'qr',amount:amt,upi:upi});}
+function cdThanks(total){cdSend({state:'thanks',total:total});}
+// The sale is saved by confirmSale, which then empties the cart. That empty cart is the
+// only reliable signal that the money is in — the function bails out early in half a dozen
+// places, and a thank-you shown for a sale that never saved would be a lie on a screen the
+// customer is reading.
+(function(){
+  if(typeof confirmSale!=='function')return;
+  const orig=confirmSale;
+  window.confirmSale=function(){
+    let tot=0;
+    try{
+      const sub=cart.reduce((a,i)=>a+i.price*i.qty,0);
+      const d=parseInt(document.getElementById('c-disc')?.value)||0;
+      const x=parseInt(document.getElementById('c-extra')?.value)||0;
+      tot=Math.max(0,sub-d)+x;
+    }catch(e){}
+    const had=cart.length;
+    const out=orig.apply(this,arguments);
+    try{ if(had&&!cart.length)cdThanks(tot); }catch(e){}
+    return out;
+  };
+})();
+function cdUrl(){try{return CustomerDisplay.url(cdShopId());}catch(e){return '';}}
+function cdPaintCard(){const b=document.getElementById('cd-url');if(b)b.textContent=cdUrl()||'—';}
+function cdCopyUrl(){
+  const u=cdUrl();if(!u)return;
+  const done=()=>toast('✅ Link copied — open it on the spare phone');
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(u).then(done).catch(()=>prompt('Copy this link:',u));}
+  else prompt('Copy this link:',u);
+}
+function cdOpenHere(){const u=cdUrl();if(u)window.open(u,'_blank');}
+setTimeout(cdPaintCard,400);
 </script>
 <script src="i18n.js?v=43"></script>
 <script src="settings.js?v=43"></script>

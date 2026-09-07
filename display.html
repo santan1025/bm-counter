@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#25302c">
+<meta name="robots" content="noindex,nofollow">
+<title>MS Clubhouse</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Archivo+Black&family=Archivo:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#1a221f}
+body{font-family:Archivo,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#f4efe2;-webkit-user-select:none;user-select:none}
+#board{position:fixed;inset:0;border:10px solid #6f4a25;background:#25302c;box-shadow:inset 0 0 120px rgba(0,0,0,.5);overflow:hidden;display:flex;flex-direction:column}
+#board::before{content:'';position:absolute;left:0;right:0;top:0;height:22%;background:radial-gradient(ellipse at 50% 0,rgba(255,255,255,.07),transparent 70%);pointer-events:none}
+.chalk{font-family:Caveat,cursive}
+.scene{position:absolute;inset:0;display:none;flex-direction:column}
+.scene.on{display:flex}
+
+/* idle */
+#s-idle{align-items:center;justify-content:center;padding:0 6vw;text-align:center}
+#idle-hi{font-size:clamp(20px,6vw,34px);color:rgba(244,239,226,.72);animation:sway 8s ease-in-out infinite;position:relative}
+#idle-name{font-size:clamp(52px,17vw,92px);font-weight:700;line-height:1.02;margin-top:.5vh;position:relative}
+.rule{display:flex;align-items:center;gap:12px;margin-top:3vh;position:relative}
+.rule i{width:36px;height:2px;background:rgba(244,239,226,.45);border-radius:2px}
+#idle-sub{font-size:clamp(19px,5.4vw,28px);color:rgba(244,239,226,.8)}
+#idle-foot{position:absolute;bottom:5vh;left:0;right:0;text-align:center;font-size:clamp(20px,5.8vw,30px);color:rgba(244,239,226,.62);line-height:1.35}
+
+/* doodles */
+.doodle{position:absolute}
+.doodle svg{display:block}
+.doodle path,.doodle circle{fill:none;stroke:#f4efe2;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:420;animation:draw 16s ease-in-out infinite}
+@keyframes draw{0%{stroke-dashoffset:420;opacity:0}4%{opacity:.85}26%{stroke-dashoffset:0;opacity:.85}84%{stroke-dashoffset:0;opacity:.85}96%,100%{stroke-dashoffset:0;opacity:0}}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-2.5deg)}50%{transform:translateY(-9px) rotate(2.5deg)}}
+@keyframes sway{0%,100%{transform:rotate(-1.2deg)}50%{transform:rotate(1.2deg)}}
+@keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+@keyframes dust{0%{opacity:0;transform:translateY(4px)}30%{opacity:.5}100%{opacity:0;transform:translateY(-40px)}}
+/* The doodles are placed for a phone standing up. Laid down or rotated there is no room
+   between them and the words, and chalk drawn through the shop name looks like a fault —
+   so they simply go away until it is upright again. */
+@media (max-aspect-ratio:1/1),(max-height:620px){.doodle{display:none}}
+.dust{position:absolute;border-radius:50%;background:#f4efe2}
+
+/* bill */
+#s-bill{padding:0}
+#bill-head{padding:2.6vh 6vw 1.6vh;text-align:center}
+#bill-shop{font-size:clamp(24px,7vw,34px);line-height:1}
+#bill-head .u{width:130px;height:2px;background:rgba(244,239,226,.35);margin:1vh auto 0;border-radius:2px}
+#bill-items{flex:1;min-height:0;overflow:hidden;padding:1vh 6vw;display:flex;flex-direction:column;gap:2.2vh;justify-content:flex-start}
+.li{display:flex;justify-content:space-between;gap:14px;align-items:baseline;font-size:clamp(24px,7.4vw,36px);animation:rise .35s ease both}
+.li .q{opacity:.62;font-size:.78em}
+.li .a{white-space:nowrap}
+#bill-foot{padding:2vh 6vw 3vh;border-top:2px dashed rgba(244,239,226,.3)}
+#bill-lbl{font-size:clamp(20px,5.6vw,28px);color:rgba(244,239,226,.72)}
+.big{font-family:'Archivo Black',sans-serif;line-height:.86;letter-spacing:-4px;text-shadow:0 0 26px rgba(244,239,226,.18)}
+#bill-tot{font-size:clamp(66px,25vw,124px)}
+
+/* qr */
+#s-qr{align-items:center;padding:3vh 6vw 0}
+#qr-lbl{font-size:clamp(20px,5.6vw,28px);color:rgba(244,239,226,.72)}
+#qr-amt{font-size:clamp(52px,19vw,96px);margin-top:.4vh}
+#qr-card{margin-top:2.4vh;background:#f4efe2;padding:14px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);display:none}
+#qr-cv{display:block;width:min(62vw,300px);height:auto;image-rendering:pixelated}
+#qr-note{margin-top:2.2vh;font-size:clamp(19px,5.4vw,26px);color:rgba(244,239,226,.78);text-align:center;line-height:1.4;padding:0 4vw}
+#qr-shop{position:absolute;bottom:0;left:0;right:0;padding:2vh;background:rgba(244,239,226,.08);border-top:1px solid rgba(244,239,226,.18);text-align:center;font-size:clamp(18px,5vw,24px);color:rgba(244,239,226,.7)}
+
+/* thanks */
+#s-thanks{align-items:center;justify-content:center;text-align:center;padding:0 6vw}
+#th-tick{width:clamp(78px,22vw,120px);height:clamp(78px,22vw,120px);border:3px solid rgba(244,239,226,.85);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:clamp(40px,12vw,64px);margin-bottom:3vh}
+#th-1{font-size:clamp(46px,14vw,72px);font-weight:700;line-height:1.05}
+#th-2{font-size:clamp(20px,5.6vw,28px);color:rgba(244,239,226,.72);margin-top:2vh}
+
+/* link dot — deliberately tiny, a customer should never notice it */
+#dot{position:absolute;right:9px;bottom:9px;width:7px;height:7px;border-radius:50%;background:#c96a3a;opacity:.75;transition:opacity .3s}
+#dot.up{opacity:0}
+
+/* first-run: which shop is this board for */
+#pick{position:fixed;inset:0;background:#25302c;z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:8vw;text-align:center}
+#pick h1{font-family:Caveat,cursive;font-size:38px;font-weight:700}
+#pick p{font-size:15px;color:rgba(244,239,226,.7);line-height:1.5;max-width:340px}
+#pick .row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:8px}
+#pick button{font-family:inherit;font-size:17px;font-weight:700;padding:14px 22px;border-radius:12px;border:1.5px solid rgba(244,239,226,.4);background:transparent;color:#f4efe2;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div id="board">
+
+  <!-- IDLE -->
+  <div class="scene on" id="s-idle">
+    <div class="doodle" style="top:6%;left:6%;animation:float 9s ease-in-out infinite">
+      <svg width="86" height="86" viewBox="0 0 86 86" aria-hidden="true">
+        <path d="M20 46c0-9 10-14 23-14s23 5 23 14"></path>
+        <path d="M18 46h50l-5 26c-.5 4-4 6-9 6H32c-5 0-8.5-2-9-6z" style="animation-delay:.4s"></path>
+        <path d="M31 46c1-8-6-9-4-15 1.5-4.5 8-5 9-11" style="animation-delay:1.1s"></path>
+        <path d="M45 46c1-8-6-9-4-15 1.5-4.5 8-5 9-11" style="animation-delay:1.5s"></path>
+        <path d="M25 60h36" style="animation-delay:2s"></path>
+      </svg>
+    </div>
+    <div class="doodle" style="top:12%;right:5%;animation:float 11s ease-in-out infinite 1.2s">
+      <svg width="82" height="82" viewBox="0 0 82 82" aria-hidden="true">
+        <path d="M14 32h44v24c0 8-6 13-14 13H28c-8 0-14-5-14-13z" style="animation-delay:.6s"></path>
+        <path d="M58 38h6c5 0 8 3 8 8s-3 8-8 8h-6" style="animation-delay:1.2s"></path>
+        <path d="M12 32h48" style="animation-delay:.2s"></path>
+        <path d="M26 22c0-5 6-5 6-10" style="animation-delay:1.8s"></path>
+        <path d="M40 22c0-5 6-5 6-10" style="animation-delay:2.2s"></path>
+      </svg>
+    </div>
+    <div class="doodle" style="top:3%;right:30%;animation:float 11s ease-in-out infinite 3s">
+      <svg width="76" height="66" viewBox="0 0 76 66" aria-hidden="true">
+        <path d="M12 50 38 12l26 38z" style="animation-delay:1.6s"></path>
+        <path d="M8 50h60" style="animation-delay:2.1s"></path>
+        <path d="M22 34c5 3 10-3 15 0s10-3 14 1" style="animation-delay:2.8s"></path>
+        <path d="M38 12v-6" style="animation-delay:3.2s"></path>
+      </svg>
+    </div>
+    <div class="doodle" style="top:27%;right:7%;animation:float 12s ease-in-out infinite 1.5s">
+      <svg width="78" height="64" viewBox="0 0 78 64" aria-hidden="true">
+        <path d="M10 48c2-16 14-30 29-30s25 14 27 30z" style="animation-delay:2.2s"></path>
+        <path d="M6 48h66" style="animation-delay:2.7s"></path>
+        <path d="M28 44c-2-10 2-18 8-22" style="animation-delay:3.3s"></path>
+        <path d="M46 44c2-10-1-18-6-22" style="animation-delay:3.7s"></path>
+      </svg>
+    </div>
+    <div class="doodle" style="top:23%;left:11%;animation:float 13s ease-in-out infinite 2.4s">
+      <svg width="70" height="70" viewBox="0 0 70 70" aria-hidden="true">
+        <path d="M10 46c8-20 20-30 30-30 8 0 10 6 6 10" style="animation-delay:1.3s"></path>
+        <path d="M10 46c14 6 28 2 36-10" style="animation-delay:1.9s"></path>
+        <path d="M22 40c4-8 9-14 14-17" style="animation-delay:2.6s"></path>
+      </svg>
+    </div>
+    <div class="doodle" style="bottom:25%;left:5%;animation:float 10s ease-in-out infinite .6s">
+      <svg width="88" height="72" viewBox="0 0 88 72" aria-hidden="true">
+        <path d="M10 52c4-22 18-34 34-34s30 12 34 34z" style="animation-delay:.8s"></path>
+        <path d="M6 52h76" style="animation-delay:1.4s"></path>
+        <path d="M22 40c6-4 12 4 18 0s12 4 18 0" style="animation-delay:2.1s"></path>
+        <path d="M44 18v-8" style="animation-delay:2.6s"></path>
+        <path d="M44 8c3-3 0-6 0-6" style="animation-delay:3s"></path>
+      </svg>
+    </div>
+    <div class="doodle" style="bottom:32%;right:5%;animation:float 12s ease-in-out infinite 1.8s">
+      <svg width="80" height="80" viewBox="0 0 80 80" aria-hidden="true">
+        <circle cx="40" cy="42" r="26" style="animation-delay:1s"></circle>
+        <circle cx="40" cy="42" r="9" style="animation-delay:1.6s"></circle>
+        <path d="M18 32c5 4 8-3 13 1s8-3 13 1 8-3 13 1" style="animation-delay:2.4s"></path>
+      </svg>
+    </div>
+    <div class="doodle" style="bottom:19%;left:34%;animation:float 10s ease-in-out infinite 2.8s">
+      <svg width="84" height="76" viewBox="0 0 84 76" aria-hidden="true">
+        <path d="M16 34c0-12 10-20 26-20s26 8 26 20v20c0 6-6 10-26 10s-26-4-26-10z" style="animation-delay:2.5s"></path>
+        <path d="M28 30c4 10 8 16 6 26" style="animation-delay:3.1s"></path>
+        <path d="M44 26c-3 12 2 18 4 30" style="animation-delay:3.5s"></path>
+        <path d="M58 32c2 10-2 16-2 26" style="animation-delay:3.9s"></path>
+        <path d="M12 64h60" style="animation-delay:4.3s"></path>
+      </svg>
+    </div>
+    <div class="doodle" style="bottom:17%;right:10%;animation:float 13s ease-in-out infinite 4s">
+      <svg width="74" height="82" viewBox="0 0 74 82" aria-hidden="true">
+        <path d="M22 40h30v14c0 5-5 8-15 8s-15-3-15-8z" style="animation-delay:3s"></path>
+        <path d="M12 62h50v12c0 5-8 8-25 8s-25-3-25-8z" style="animation-delay:3.6s"></path>
+        <path d="M20 40c4-6 10-8 17-8s13 2 15 8" style="animation-delay:4.1s"></path>
+        <path d="M37 32V20" style="animation-delay:4.5s"></path>
+        <path d="M37 20c4-4 0-8 0-8" style="animation-delay:4.9s"></path>
+      </svg>
+    </div>
+
+    <div class="dust" style="left:16%;bottom:20%;width:7px;height:7px;animation:dust 7s ease-out infinite"></div>
+    <div class="dust" style="left:38%;bottom:20%;width:5px;height:5px;animation:dust 7s ease-out infinite 2.4s"></div>
+    <div class="dust" style="left:64%;bottom:20%;width:6px;height:6px;animation:dust 7s ease-out infinite 4.6s"></div>
+
+    <div class="chalk" id="idle-hi">welcome to</div>
+    <div class="chalk" id="idle-name">MS<br>Clubhouse</div>
+    <div class="rule"><i></i><span class="chalk" id="idle-sub">Rabale</span><i></i></div>
+    <div class="chalk" id="idle-foot">fresh cream cakes<br>baked this morning</div>
+  </div>
+
+  <!-- BILL -->
+  <div class="scene" id="s-bill">
+    <div id="bill-head"><div class="chalk" id="bill-shop">MS Clubhouse</div><div class="u"></div></div>
+    <div class="chalk" id="bill-items"></div>
+    <div id="bill-foot">
+      <div class="chalk" id="bill-lbl">total</div>
+      <div class="big" id="bill-tot">₹0</div>
+    </div>
+  </div>
+
+  <!-- PAYMENT -->
+  <div class="scene" id="s-qr">
+    <div class="chalk" id="qr-lbl">scan to pay</div>
+    <div class="big" id="qr-amt">₹0</div>
+    <div id="qr-card"><canvas id="qr-cv"></canvas></div>
+    <div class="chalk" id="qr-note">any UPI app works</div>
+    <div class="chalk" id="qr-shop">MS Clubhouse</div>
+  </div>
+
+  <!-- THANK YOU -->
+  <div class="scene" id="s-thanks">
+    <div class="chalk" id="th-tick">✓</div>
+    <div class="chalk" id="th-1">Thank you!</div>
+    <div class="chalk" id="th-2">see you again</div>
+  </div>
+
+  <div id="dot"></div>
+</div>
+
+<div id="pick">
+  <h1>Which shop is this board for?</h1>
+  <p>Pick once. This phone remembers it, so you can leave the page open from now on.</p>
+  <div class="row" id="pick-row"></div>
+</div>
+
+<script src="supabase-config.js?v=43"></script>
+<script src="qr.js?v=43"></script>
+<script src="display.js?v=43"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// THE BOARD
+// ═══════════════════════════════════════════════════════════════════════════
+// No login, no sales, no data. It cannot ring up a bill even by accident, and it opens on
+// an old handset in a second. Everything it knows arrives on the channel.
+const SHOP_KEY = 'cs9_display_shop';
+const NAME_KEY = 'cs9_display_names';
+const el = id => document.getElementById(id);
+const fmt = n => '₹' + Number(n || 0).toLocaleString('en-IN');
+
+function shopId() {
+  const q = new URLSearchParams(location.search).get('shop');
+  if (q) { try { localStorage.setItem(SHOP_KEY, q.toUpperCase()); } catch (e) {} return q.toUpperCase(); }
+  try { return localStorage.getItem(SHOP_KEY) || ''; } catch (e) { return ''; }
+}
+
+// The shop name is only decoration here, so it comes off the last state phone A sent and
+// is cached. A board that opens before the first tap still says the right name.
+function shopName(id) {
+  try { return (JSON.parse(localStorage.getItem(NAME_KEY)) || {})[id] || ''; } catch (e) { return ''; }
+}
+function rememberName(id, name) {
+  if (!id || !name) return;
+  let m = {};
+  try { m = JSON.parse(localStorage.getItem(NAME_KEY)) || {}; } catch (e) {}
+  if (m[id] === name) return;
+  m[id] = name;
+  try { localStorage.setItem(NAME_KEY, JSON.stringify(m)); } catch (e) {}
+}
+
+let SHOP = shopId();
+if (!SHOP) {
+  // Nothing in the URL and nothing remembered: ask, rather than guessing and quietly
+  // mirroring the wrong shop.
+  el('pick').style.display = 'flex';
+  // The shop list is a table now, so read the list Session cached rather than the two
+  // codes that used to be hardcoded — a shop the owner added must be pickable here too.
+  let codes = [];
+  try {
+    codes = (JSON.parse(localStorage.getItem('cs9_shops')) || [])
+      .filter(r => r && r.id && r.active !== false && (r.kind || 'shop') === 'shop')
+      .map(r => { rememberName(r.id, r.name); return r.id; });
+  } catch (e) {}
+  if (!codes.length) codes = ['S1', 'S2'];
+  codes.forEach(id => {
+    const b = document.createElement('button');
+    b.textContent = id + (shopName(id) ? ' · ' + shopName(id) : '');
+    b.onclick = () => { try { localStorage.setItem(SHOP_KEY, id); } catch (e) {} location.search = '?shop=' + id; };
+    el('pick-row').appendChild(b);
+  });
+} else {
+  start();
+}
+
+function scene(which) {
+  ['idle', 'bill', 'qr', 'thanks'].forEach(s => el('s-' + s).classList.toggle('on', s === which));
+}
+
+let thanksTimer = null, staleTimer = null, linked = false, lastQr = null;
+
+function paintBill(p) {
+  const items = (p.items || []).slice(-7);
+  el('bill-items').innerHTML = items.map(i =>
+    '<div class="li"><div>' + esc(i.n) + (i.q > 1 ? ' <span class="q">×' + i.q + '</span>' : '') +
+    '</div><div class="a">' + Number(i.a != null ? i.a : (i.p || 0) * (i.q || 1)).toLocaleString('en-IN') + '</div></div>'
+  ).join('');
+  el('bill-tot').textContent = fmt(p.total);
+  if (p.shop) { el('bill-shop').textContent = p.shop; rememberName(SHOP, p.shop); }
+  scene('bill');
+}
+
+function paintQr(p) {
+  el('qr-amt').textContent = fmt(p.amount);
+  const card = el('qr-card');
+  let drawn = false;
+  if (p.upi && window.drawQR) {
+    try { drawn = drawQR(el('qr-cv'), p.upi, 300); } catch (e) { drawn = false; }
+  }
+  card.style.display = drawn ? 'block' : 'none';
+  // The fallback the shop actually asked for: if the code cannot be built, show the figure
+  // big and let the counter phone hold up its own QR. Never a blank screen mid-sale.
+  el('qr-lbl').textContent = drawn ? 'scan to pay' : 'please pay';
+  el('qr-note').textContent = drawn ? 'any UPI app works' : 'scan the QR on the counter phone';
+  if (p.shop) { el('qr-shop').textContent = p.shop; rememberName(SHOP, p.shop); }
+  scene('qr');
+}
+
+function paintThanks(p) {
+  el('th-2').textContent = p.total ? 'paid ' + fmt(p.total) + ' · see you again' : 'see you again';
+  scene('thanks');
+  clearTimeout(thanksTimer);
+  thanksTimer = setTimeout(() => scene('idle'), 10000);
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+}
+
+function onState(p) {
+  if (!p || !p.state) return;
+  clearTimeout(thanksTimer);
+  clearTimeout(staleTimer);
+  if (p.state === 'bill') { lastQr = null; paintBill(p); }
+  else if (p.state === 'qr') { lastQr = p; paintQr(p); }
+  else if (p.state === 'thanks') { lastQr = null; paintThanks(p); }
+  else { lastQr = null; scene('idle'); }
+  // A bill left on screen for a quarter of an hour means the selling phone went away
+  // mid-sale — the next customer should not read the last one's total.
+  if (p.state === 'bill' || p.state === 'qr') {
+    staleTimer = setTimeout(() => scene('idle'), 15 * 60 * 1000);
+  }
+}
+
+function start() {
+  const cached = shopName(SHOP);
+  if (cached) {
+    el('idle-name').textContent = cached;
+    el('bill-shop').textContent = cached;
+    el('qr-shop').textContent = cached;
+    document.title = cached;
+  }
+  CustomerDisplay.watch(SHOP, onState, up => {
+    linked = up;
+    el('dot').classList.toggle('up', up);
+  });
+  keepAwake();
+}
+
+// The phone has to stay awake on a charger. If the browser refuses the lock the board still
+// works — it just goes dark like any other page, and a tap brings it back.
+let wl = null;
+async function keepAwake() {
+  try {
+    if ('wakeLock' in navigator) {
+      wl = await navigator.wakeLock.request('screen');
+      wl.addEventListener('release', () => { wl = null; });
+    }
+  } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !wl) keepAwake(); });
+
+// Tapping the board asks for fullscreen — one tap when the shutter goes up and the URL bar
+// is gone for the day.
+el('board').addEventListener('click', () => {
+  if (!document.fullscreenElement && el('board').requestFullscreen) {
+    el('board').requestFullscreen().catch(() => {});
+  }
+});
+</script>
+</body>
+</html>
