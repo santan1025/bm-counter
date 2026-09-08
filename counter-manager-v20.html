@@ -900,6 +900,19 @@ body.dark .qd-warn{background:#3a2a10;border-color:#7a5520;color:#f0c98a}
         <button class="btn btn-gold" style="margin-bottom:0" onclick="cdCopyUrl()">📋 Copy link</button>
         <button class="btn btn-out" style="margin-bottom:0" onclick="cdOpenHere()">Open it</button>
       </div>
+      <div style="height:1px;background:var(--border);margin:14px 0"></div>
+      <div style="font-size:12px;color:var(--sub);line-height:1.5;margin-bottom:10px">What the board says between customers. Leave the greeting or bottom line empty to drop it.</div>
+      <label>Greeting</label><input type="text" id="cd-hi" placeholder="welcome to">
+      <label>Big name (Enter for a new line)</label><textarea id="cd-name" rows="2" placeholder="MS&#10;Clubhouse" style="width:100%;padding:15px 16px;border:1.5px solid var(--border);border-radius:13px;font-size:17px;font-weight:700;font-family:inherit;background:#fff;color:#1a1a1a;resize:vertical"></textarea>
+      <label>Under the name</label><input type="text" id="cd-sub" placeholder="Rabale">
+      <label>Bottom line (Enter for a new line)</label><textarea id="cd-foot" rows="2" placeholder="fresh cream cakes&#10;baked this morning" style="width:100%;padding:15px 16px;border:1.5px solid var(--border);border-radius:13px;font-size:17px;font-weight:700;font-family:inherit;background:#fff;color:#1a1a1a;resize:vertical"></textarea>
+      <label>Text size on the board</label>
+      <div style="display:flex;gap:8px" id="cd-scale-row">
+        <button class="btn btn-out btn-sm" style="margin-bottom:0;flex:1" onclick="cdSetScale(0.8)">Smaller</button>
+        <button class="btn btn-out btn-sm" style="margin-bottom:0;flex:1" onclick="cdSetScale(1)">Normal</button>
+        <button class="btn btn-out btn-sm" style="margin-bottom:0;flex:1" onclick="cdSetScale(1.25)">Bigger</button>
+      </div>
+      <button class="btn btn-gr" style="margin:12px 0 0" onclick="cdSaveBoard()">Save — the board changes at once</button>
     </div>
     <div class="card" style="border:2px solid var(--gold)">
       <div class="sec-title">☁ Cloud Sync</div>
@@ -6657,7 +6670,36 @@ function cdSend(p){
   const s=cdShopId();
   if(!_cdHost||_cdHostShop!==s){_cdHostShop=s;_cdHost=CustomerDisplay.host(s);}
   p.shop=cdShopLabel();
+  p.board=cdBoard();
   _cdHost.send(p);
+}
+// The idle wording lives on THIS phone and travels with every state, because the board has
+// no settings screen of its own — it is deliberately a page with nothing to press.
+const CD_BOARD_KEY='cs9_display_board';
+function cdBoard(){try{return JSON.parse(localStorage.getItem(CD_BOARD_KEY))||{};}catch(e){return{};}}
+function cdRenderBoard(){
+  const b=cdBoard();
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v==null?'':v;};
+  set('cd-hi',b.hi);set('cd-name',b.name);set('cd-sub',b.sub);set('cd-foot',b.foot);
+  cdPaintScale(b.scale||1);
+}
+function cdPaintScale(k){
+  const row=document.getElementById('cd-scale-row');if(!row)return;
+  [0.8,1,1.25].forEach((v,i)=>{
+    const b=row.children[i];if(!b)return;
+    b.className='btn btn-sm '+(Math.abs(v-Number(k||1))<0.01?'btn-gold':'btn-out');
+  });
+}
+function cdSetScale(k){const b=cdBoard();b.scale=k;localStorage.setItem(CD_BOARD_KEY,JSON.stringify(b));cdPaintScale(k);cdIdle();}
+function cdSaveBoard(){
+  const val=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
+  const b=cdBoard();
+  b.hi=val('cd-hi');b.name=val('cd-name');b.sub=val('cd-sub');b.foot=val('cd-foot');
+  localStorage.setItem(CD_BOARD_KEY,JSON.stringify(b));
+  // Push it straight away rather than waiting for the next sale, so he can stand at the
+  // counter and watch the other phone change as he saves.
+  cdIdle();
+  toast('✅ Board updated');
 }
 function cdIdle(){cdSend({state:'idle'});}
 function cdBill(){
@@ -6700,7 +6742,7 @@ function cdCopyUrl(){
   else prompt('Copy this link:',u);
 }
 function cdOpenHere(){const u=cdUrl();if(u)window.open(u,'_blank');}
-setTimeout(cdPaintCard,400);
+setTimeout(function(){cdPaintCard();cdRenderBoard();},400);
 </script>
 <script src="i18n.js?v=43"></script>
 <script src="settings.js?v=43"></script>

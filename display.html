@@ -20,12 +20,12 @@ body{font-family:Archivo,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans
 
 /* idle */
 #s-idle{align-items:center;justify-content:center;padding:0 6vw;text-align:center}
-#idle-hi{font-size:clamp(20px,6vw,34px);color:rgba(244,239,226,.72);animation:sway 8s ease-in-out infinite;position:relative}
-#idle-name{font-size:clamp(52px,17vw,92px);font-weight:700;line-height:1.02;margin-top:.5vh;position:relative}
+#idle-hi{font-size:clamp(18px,calc(6vw * var(--k,1)),46px);color:rgba(244,239,226,.72);animation:sway 8s ease-in-out infinite;position:relative}
+#idle-name{font-size:clamp(40px,calc(17vw * var(--k,1)),128px);font-weight:700;line-height:1.02;margin-top:.5vh;position:relative}
 .rule{display:flex;align-items:center;gap:12px;margin-top:3vh;position:relative}
 .rule i{width:36px;height:2px;background:rgba(244,239,226,.45);border-radius:2px}
-#idle-sub{font-size:clamp(19px,5.4vw,28px);color:rgba(244,239,226,.8)}
-#idle-foot{position:absolute;bottom:5vh;left:0;right:0;text-align:center;font-size:clamp(20px,5.8vw,30px);color:rgba(244,239,226,.62);line-height:1.35}
+#idle-sub{font-size:clamp(17px,calc(5.4vw * var(--k,1)),38px);color:rgba(244,239,226,.8)}
+#idle-foot{position:absolute;bottom:5vh;left:0;right:0;text-align:center;font-size:clamp(18px,calc(5.8vw * var(--k,1)),40px);color:rgba(244,239,226,.62);line-height:1.35}
 
 /* doodles */
 .doodle{position:absolute}
@@ -36,10 +36,10 @@ body{font-family:Archivo,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans
 @keyframes sway{0%,100%{transform:rotate(-1.2deg)}50%{transform:rotate(1.2deg)}}
 @keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
 @keyframes dust{0%{opacity:0;transform:translateY(4px)}30%{opacity:.5}100%{opacity:0;transform:translateY(-40px)}}
-/* The doodles are placed for a phone standing up. Laid down or rotated there is no room
-   between them and the words, and chalk drawn through the shop name looks like a fault —
-   so they simply go away until it is upright again. */
-@media (max-aspect-ratio:1/1),(max-height:620px){.doodle{display:none}}
+/* Landscape only. The first version also hid them below 620px tall, which is most 5-inch
+   phones in Chrome with a URL bar — the doodles were switched off on exactly the handset
+   this board is meant for. */
+@media (min-aspect-ratio:1/1),(max-height:480px){.doodle{display:none}}
 .dust{position:absolute;border-radius:50%;background:#f4efe2}
 
 /* bill */
@@ -89,7 +89,7 @@ body{font-family:Archivo,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans
 
   <!-- IDLE -->
   <div class="scene on" id="s-idle">
-    <div class="doodle" style="top:6%;left:6%;animation:float 9s ease-in-out infinite">
+    <div class="doodle" style="top:1%;left:3%;animation:float 9s ease-in-out infinite">
       <svg width="86" height="86" viewBox="0 0 86 86" aria-hidden="true">
         <path d="M20 46c0-9 10-14 23-14s23 5 23 14"></path>
         <path d="M18 46h50l-5 26c-.5 4-4 6-9 6H32c-5 0-8.5-2-9-6z" style="animation-delay:.4s"></path>
@@ -98,7 +98,7 @@ body{font-family:Archivo,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans
         <path d="M25 60h36" style="animation-delay:2s"></path>
       </svg>
     </div>
-    <div class="doodle" style="top:12%;right:5%;animation:float 11s ease-in-out infinite 1.2s">
+    <div class="doodle" style="top:1%;right:3%;animation:float 11s ease-in-out infinite 1.2s">
       <svg width="82" height="82" viewBox="0 0 82 82" aria-hidden="true">
         <path d="M14 32h44v24c0 8-6 13-14 13H28c-8 0-14-5-14-13z" style="animation-delay:.6s"></path>
         <path d="M58 38h6c5 0 8 3 8 8s-3 8-8 8h-6" style="animation-delay:1.2s"></path>
@@ -107,7 +107,7 @@ body{font-family:Archivo,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans
         <path d="M40 22c0-5 6-5 6-10" style="animation-delay:2.2s"></path>
       </svg>
     </div>
-    <div class="doodle" style="top:3%;right:30%;animation:float 11s ease-in-out infinite 3s">
+    <div class="doodle" style="top:2%;left:32%;animation:float 11s ease-in-out infinite 3s">
       <svg width="76" height="66" viewBox="0 0 76 66" aria-hidden="true">
         <path d="M12 50 38 12l26 38z" style="animation-delay:1.6s"></path>
         <path d="M8 50h60" style="animation-delay:2.1s"></path>
@@ -115,7 +115,7 @@ body{font-family:Archivo,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans
         <path d="M38 12v-6" style="animation-delay:3.2s"></path>
       </svg>
     </div>
-    <div class="doodle" style="top:27%;right:7%;animation:float 12s ease-in-out infinite 1.5s">
+    <div class="doodle" style="top:15%;left:31%;animation:float 12s ease-in-out infinite 1.5s">
       <svg width="78" height="64" viewBox="0 0 78 64" aria-hidden="true">
         <path d="M10 48c2-16 14-30 29-30s25 14 27 30z" style="animation-delay:2.2s"></path>
         <path d="M6 48h66" style="animation-delay:2.7s"></path>
@@ -123,14 +123,14 @@ body{font-family:Archivo,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans
         <path d="M46 44c2-10-1-18-6-22" style="animation-delay:3.7s"></path>
       </svg>
     </div>
-    <div class="doodle" style="top:23%;left:11%;animation:float 13s ease-in-out infinite 2.4s">
+    <div class="doodle" style="top:14%;left:6%;animation:float 13s ease-in-out infinite 2.4s">
       <svg width="70" height="70" viewBox="0 0 70 70" aria-hidden="true">
         <path d="M10 46c8-20 20-30 30-30 8 0 10 6 6 10" style="animation-delay:1.3s"></path>
         <path d="M10 46c14 6 28 2 36-10" style="animation-delay:1.9s"></path>
         <path d="M22 40c4-8 9-14 14-17" style="animation-delay:2.6s"></path>
       </svg>
     </div>
-    <div class="doodle" style="bottom:25%;left:5%;animation:float 10s ease-in-out infinite .6s">
+    <div class="doodle" style="bottom:19%;left:4%;animation:float 10s ease-in-out infinite .6s">
       <svg width="88" height="72" viewBox="0 0 88 72" aria-hidden="true">
         <path d="M10 52c4-22 18-34 34-34s30 12 34 34z" style="animation-delay:.8s"></path>
         <path d="M6 52h76" style="animation-delay:1.4s"></path>
@@ -139,14 +139,14 @@ body{font-family:Archivo,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans
         <path d="M44 8c3-3 0-6 0-6" style="animation-delay:3s"></path>
       </svg>
     </div>
-    <div class="doodle" style="bottom:32%;right:5%;animation:float 12s ease-in-out infinite 1.8s">
+    <div class="doodle" style="top:15%;right:4%;animation:float 12s ease-in-out infinite 1.8s">
       <svg width="80" height="80" viewBox="0 0 80 80" aria-hidden="true">
         <circle cx="40" cy="42" r="26" style="animation-delay:1s"></circle>
         <circle cx="40" cy="42" r="9" style="animation-delay:1.6s"></circle>
         <path d="M18 32c5 4 8-3 13 1s8-3 13 1 8-3 13 1" style="animation-delay:2.4s"></path>
       </svg>
     </div>
-    <div class="doodle" style="bottom:19%;left:34%;animation:float 10s ease-in-out infinite 2.8s">
+    <div class="doodle" style="bottom:16%;left:33%;animation:float 10s ease-in-out infinite 2.8s">
       <svg width="84" height="76" viewBox="0 0 84 76" aria-hidden="true">
         <path d="M16 34c0-12 10-20 26-20s26 8 26 20v20c0 6-6 10-26 10s-26-4-26-10z" style="animation-delay:2.5s"></path>
         <path d="M28 30c4 10 8 16 6 26" style="animation-delay:3.1s"></path>
@@ -155,7 +155,7 @@ body{font-family:Archivo,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans
         <path d="M12 64h60" style="animation-delay:4.3s"></path>
       </svg>
     </div>
-    <div class="doodle" style="bottom:17%;right:10%;animation:float 13s ease-in-out infinite 4s">
+    <div class="doodle" style="bottom:18%;right:5%;animation:float 13s ease-in-out infinite 4s">
       <svg width="74" height="82" viewBox="0 0 74 82" aria-hidden="true">
         <path d="M22 40h30v14c0 5-5 8-15 8s-15-3-15-8z" style="animation-delay:3s"></path>
         <path d="M12 62h50v12c0 5-8 8-25 8s-25-3-25-8z" style="animation-delay:3.6s"></path>
@@ -221,6 +221,7 @@ body{font-family:Archivo,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans
 // an old handset in a second. Everything it knows arrives on the channel.
 const SHOP_KEY = 'cs9_display_shop';
 const NAME_KEY = 'cs9_display_names';
+const BOARD_KEY = 'cs9_display_board';
 const el = id => document.getElementById(id);
 const fmt = n => '₹' + Number(n || 0).toLocaleString('en-IN');
 
@@ -245,6 +246,26 @@ function rememberName(id, name) {
 }
 
 let SHOP = shopId();
+
+// The four lines and the text size are set on the selling phone (More → Cloud Sync →
+// Customer display) and ride along with every state it sends. Cached here, so a board that
+// starts up before the first tap of the day already says the right thing.
+let BOARD = {};
+try { BOARD = JSON.parse(localStorage.getItem(BOARD_KEY)) || {}; } catch (e) {}
+
+function applyBoard(cfg) {
+  if (!cfg) return;
+  BOARD = cfg;
+  try { localStorage.setItem(BOARD_KEY, JSON.stringify(cfg)); } catch (e) {}
+  if (cfg.hi) el('idle-hi').textContent = cfg.hi;
+  if (cfg.name) el('idle-name').innerHTML = esc(cfg.name).replace(/\n/g, '<br>');
+  if (cfg.sub) el('idle-sub').textContent = cfg.sub;
+  if (cfg.foot) el('idle-foot').innerHTML = esc(cfg.foot).replace(/\n/g, '<br>');
+  el('idle-hi').style.display = cfg.hi === '' ? 'none' : '';
+  el('idle-foot').style.display = cfg.foot === '' ? 'none' : '';
+  const k = Number(cfg.scale);
+  document.documentElement.style.setProperty('--k', (k >= 0.6 && k <= 1.8) ? k : 1);
+}
 if (!SHOP) {
   // Nothing in the URL and nothing remembered: ask, rather than guessing and quietly
   // mirroring the wrong shop.
@@ -314,6 +335,7 @@ function esc(s) {
 
 function onState(p) {
   if (!p || !p.state) return;
+  if (p.board) applyBoard(p.board);
   clearTimeout(thanksTimer);
   clearTimeout(staleTimer);
   if (p.state === 'bill') { lastQr = null; paintBill(p); }
@@ -328,9 +350,12 @@ function onState(p) {
 }
 
 function start() {
+  applyBoard(BOARD);
   const cached = shopName(SHOP);
   if (cached) {
-    el('idle-name').textContent = cached;
+    // A name typed into the settings wins over the shop's own name — a board can be told to
+    // say something else on purpose.
+    if (!BOARD.name) el('idle-name').textContent = cached;
     el('bill-shop').textContent = cached;
     el('qr-shop').textContent = cached;
     document.title = cached;

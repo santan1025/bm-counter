@@ -1,7 +1,7 @@
 // BM Ventures — offline cache. Bump CACHE_V after any change to any app file.
 // Network-first: a republished update is picked up on the next load, and the cache is only
 // the offline fallback. A shop with a dead SIM must still be able to open the till.
-const CACHE_V = 'bm-v43-01';
+const CACHE_V = 'bm-v43-02';
 const ASSETS = [
   './', './index.html', './login.html',
   './counter-manager-v20.html', './chef.html', './kitchen.html', './owner.html',
