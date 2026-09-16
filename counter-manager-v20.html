@@ -609,6 +609,8 @@ body.dark .qd-warn{background:#3a2a10;border-color:#7a5520;color:#f0c98a}
       <button class="btn btn-out" onclick="saveOpeningSnap()" style="font-size:13px">📸 Opening Snapshot</button>
       <button class="btn btn-out" onclick="saveClosingSnap()" style="font-size:13px">📸 Closing Snapshot</button>
     </div>
+    <button class="btn btn-out" onclick="rebuildClosingFromMovement()" style="font-size:13px;margin-top:8px">🔧 Rebuild shelf from today's movement</button>
+    <div style="font-size:12px;color:var(--sub);line-height:1.6;margin-top:6px">Use this when the shelf counts look wrong — it recalculates every item from opening + received − sold − damage, and lists anything sold without stock instead of hiding it in the total.</div>
   </div>
   <div class="divider">Item Stock Count</div>
   <div style="display:flex;gap:8px;margin-bottom:8px">
@@ -984,6 +986,13 @@ create policy "shop access" on cm_records
       <button class="btn btn-out" onclick="expJSON()">⬇ Full Backup (JSON)</button>
       <button class="btn btn-out" onclick="document.getElementById('rest-file').click()">⬆ Restore from Backup</button>
       <button class="btn btn-out" onclick="archiveOldSales()">🗄 Archive Sales Older Than 90 Days</button>
+    </div>
+    <div class="card">
+      <div class="sec-title">📦 Phone Storage</div>
+      <div id="st-meter"></div>
+      <div id="st-list" style="margin-top:10px"></div>
+      <button class="btn btn-br" onclick="freeUpNow()" style="margin-top:12px">✨ Free Up Space Now</button>
+      <div style="font-size:11px;color:var(--sub);margin-top:8px;line-height:1.5">Frees room by removing old bill photos and old item-by-item stock lists. Every rupee figure, every bill and every total stays exactly as it is.</div>
       <button class="btn btn-out" onclick="om('m-change-pass')">🔑 Change Data Password</button>
       <button class="btn btn-out" onclick="changeOwnerPin()" style="margin-top:8px">👑 Change Owner Dashboard PIN</button>
       <button class="btn btn-out" onclick="location.href='recover.html'" style="margin-top:8px">🛟 Recover Missing Data</button>
@@ -1209,6 +1218,16 @@ create policy "shop access" on cm_records
 <button class="btn btn-br" onclick="saveStaffMember()">Save</button>
 <button class="btn btn-out" onclick="cm('m-addstaff')">Cancel</button>
 </div></div>
+<div class="mbg" id="m-rescue"><div class="modal"><div class="m-drag"></div><button class="m-close" onclick="cm('m-rescue')">✕</button>
+<div class="m-title">⚠️ Phone is out of room</div>
+<div style="font-size:13px;color:var(--sub);line-height:1.6;margin-bottom:12px">A save just failed. Tap the green button and the app will clear old photos and copies until there is room, then you can save the bill again.<br><b style="color:var(--br)">No sale, amount or stock count is deleted.</b></div>
+<div id="rsc-meter" style="margin-bottom:14px"></div>
+<button class="btn" style="background:var(--gr);color:#fff;font-size:17px;padding:16px" onclick="rescueNow()">Make room now</button>
+<div id="rsc-out" style="font-size:13px;line-height:1.7;margin-top:12px"></div>
+<div class="divider" style="margin-top:16px">Before you clear, if you want a copy</div>
+<button class="btn btn-out" onclick="expJSON()">Download full backup file</button>
+<div style="font-size:12px;color:var(--sub);margin-top:10px;line-height:1.6">Still stuck after this? Write bills on paper and tell the owner — nothing is lost, they can be entered later.</div>
+</div></div>
 <div class="mbg" id="m-issue"><div class="modal"><div class="m-drag"></div><button class="m-close" onclick="cm('m-issue')">✕</button>
 <div class="m-title">🐞 Report a problem</div>
 <div style="font-size:13px;color:var(--sub);line-height:1.6;margin-bottom:10px">Write it down the moment it happens — what you were doing and what went wrong. The screen you came from and the time are saved automatically.</div>
@@ -1419,9 +1438,11 @@ function suggestChangeMap(amt,drawer){
 }
 const EXP_KEY='cs9_exp';const RTK_KEY='cs9_rtk';
 const gexp=()=>{try{return JSON.parse(localStorage.getItem(EXP_KEY))||[];}catch(e){return[];}};
-const sexp=v=>localStorage.setItem(EXP_KEY,JSON.stringify(v));
+// Throws on a full box by design — the expense form catches it and offers to save the
+// expense without its bill photo, which is the useful half.
+const sexp=v=>{localStorage.setItem(EXP_KEY,JSON.stringify(v));};
 const grtk=()=>{try{return JSON.parse(localStorage.getItem(RTK_KEY))||[];}catch(e){return[];}};
-const srtk=v=>localStorage.setItem(RTK_KEY,JSON.stringify(v));
+const srtk=v=>svHard(RTK_KEY,v);
 const ORD_CATS=['Half Kg Cakes','1 Kg Cakes','Pastry','Brownie','Savories','Faluda','Other'];
 const PK='cs7_p',SK='cs7_s',DK='cs7_d',CK='cs7_c',SCK='cs7_sc',OK='cs7_o',DMK='cs7_dm',SPK='cs7_sp',HOK='cs7_ho',SETUP='cs7_setup',DARK='cs7_dark';
 const DMG_DAYS=3;
@@ -1429,17 +1450,145 @@ const tp=(k,def)=>{try{const d=localStorage.getItem(k);const v=d?JSON.parse(d):n
   // A stored literal "null" (or any nullish parse) used to be handed straight back, and every
   // caller does .filter/.map on it — one bad write took the whole app down until storage was cleared.
   return v==null?(typeof def==='function'?def():def):v;}catch(e){return typeof def==='function'?def():def;}};
+// Plain saver, kept for things that genuinely don't matter if they miss a write
+// (view preferences, UI state). Anything holding a rupee figure or a stock count
+// must use svHard instead — see the assignments below.
 const sv=(k,v)=>{
   try{ localStorage.setItem(k,JSON.stringify(v)); return true; }
   catch(e){
     console.error('Storage save failed for key',k,e);
-    if(typeof toast==='function') toast('\u26a0\ufe0f Storage full! Could not save. Try a smaller image or clear old data.', 4000);
+    // A dead-end toast leaves staff stuck at the counter. Offer the way out.
+    if(typeof toast==='function') toast('\u26a0\ufe0f Storage full \u2014 opening Free Up Space\u2026', 3000);
+    try{ setTimeout(openStorageRescue,600); }catch(e2){}
     return false;
   }
 };
-const gp=()=>tp(PK,defProds);const spp=v=>sv(PK,v);
-const gs=()=>tp(SK,[]);const ss=v=>sv(SK,v);
-const gd=()=>tp(DK,{});const sd=v=>sv(DK,v);
+// ═══ STORAGE SPACE ═══
+// A phone gives this app about 5 MB of localStorage. Photos are the only things big
+// enough to fill it, but a full box stops SALES from saving — which is the one thing
+// that must never happen. So: measure honestly, free room automatically, sell anyway.
+const LS_BUDGET=4600*1024;
+function lsUsed(){let n=0;for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);n+=k.length+(localStorage.getItem(k)||'').length;}return n*2;}
+function lsPct(){return Math.min(100,Math.round(lsUsed()/LS_BUDGET*100));}
+function lsBreakdown(){
+  const parts=[];
+  const size=k=>((localStorage.getItem(k)||'').length)*2;
+  const billBytes=()=>gexp().reduce((a,e)=>a+(e.bill&&e.bill.data?e.bill.data.length*2:0),0);
+  const snapBytes=()=>{const d=gd();let n=0;Object.keys(d).forEach(k=>{['openingSnap','closingSnap','newStockLog'].forEach(f=>{if(d[k]&&d[k][f])n+=JSON.stringify(d[k][f]).length*2;});});return n;};
+  const scBytes=()=>gsc().reduce((a,s)=>a+(s&&s.img?s.img.length*2:0),0);
+  parts.push({label:'Bill photos on expenses',bytes:billBytes(),fix:'freeBills'});
+  parts.push({label:'Daily stock snapshots',bytes:snapBytes(),fix:'freeSnaps'});
+  parts.push({label:'Sales history ('+gs().length+' bills)',bytes:size(SK)-0,fix:'freeSales'});
+  parts.push({label:'Quick Add tile images',bytes:scBytes(),fix:'freeTiles'});
+  parts.push({label:'Stamp & signature',bytes:size(STAMP_KEY)+size(SIGN_KEY),fix:null});
+  let bk=0,mir=0;
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i)||'';
+    if(k.indexOf('cs9_backup_')===0)bk+=size(k)+k.length*2;
+    if(k.indexOf('cs9_sync_')===0)mir+=size(k)+k.length*2;}
+  parts.push({label:'Daily safety copies on phone',bytes:bk,fix:'freeOldBackups'});
+  parts.push({label:'Cloud sync mirror',bytes:mir,fix:null});
+  return parts.filter(p=>p.bytes>1024).sort((a,b)=>b.bytes-a.bytes);
+}
+const kb=b=>b>=1024*1024?(b/1024/1024).toFixed(1)+' MB':Math.round(b/1024)+' KB';
+
+// Each step below frees room WITHOUT touching a rupee figure: item-by-item snapshot
+// lists go, the day's totals stay; a bill photo goes, the expense and its amount stay.
+function freeSnaps(days){
+  const cut=dkey(new Date(Date.now()-(days===undefined?14:days)*864e5));
+  const d=gd();let hit=0;
+  Object.keys(d).forEach(k=>{if(k>=cut||!d[k])return;
+    ['openingSnap','closingSnap','newStockLog'].forEach(f=>{if(d[k][f]){delete d[k][f];hit++;}});
+    if(d[k].snapsTrimmed===undefined)d[k].snapsTrimmed=1;});
+  if(hit)sd(d);
+  return hit;
+}
+function freeBills(days){
+  const cut=dkey(new Date(Date.now()-(days===undefined?30:days)*864e5));
+  const ex=gexp();let hit=0;
+  ex.forEach(e=>{if(e.date<cut&&e.bill){delete e.bill;e.billRemoved=1;hit++;}});
+  if(hit)sexp(ex);
+  return hit;
+}
+// Keeps the most recent safety copy and drops the rest. Older ones are pure weight:
+// the figures in them are also in the downloadable Full Backup.
+function freeOldBackups(){
+  const keys=[];
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf('cs9_backup_')===0)keys.push(k);}
+  keys.sort();
+  const drop=keys.slice(0,Math.max(0,keys.length-1));
+  drop.forEach(k=>localStorage.removeItem(k));
+  return drop.length;
+}
+function freeTiles(){
+  const sc=gsc();let hit=0;
+  sc.forEach(s=>{if(s&&s.img&&s.img.length>4096){delete s.img;hit++;}});
+  if(hit)ssc(sc);
+  return hit;
+}
+// The cloud sync mirror is a COPY of what is already on the server. Dropping it frees
+// real space and costs nothing but one "Pull everything from cloud" afterwards.
+// The table list is explicit on purpose: a prefix match on 'cs9_sync_' would also take
+// cs9_sync_queue (rows waiting to upload — those exist ONLY on this phone) and
+// cs9_sync / cs9_sync_cursor (the connection settings), which would disconnect the shop.
+function freeMirror(){
+  const MIRRORED=['requests','dispatches','cm_sales','stock','special_orders','punches',
+    'notifications','expenses','damage','daybook','staff_accounts','cm_shops'];
+  let hit=0;
+  MIRRORED.forEach(t=>{
+    const k='cs9_sync_'+t;
+    if(localStorage.getItem(k)!=null){localStorage.removeItem(k);hit++;}
+  });
+  if(hit){try{localStorage.setItem('cs9_mirror_dropped',td());}catch(e){}}
+  return hit;
+}
+// Last resort before refusing a sale: the demo/seed snapshot and the archived copy of it
+// are setup leftovers. No real bill, rupee or stock count lives in them.
+function freeSeed(){
+  let hit=0;
+  ['cs9_seed_snapshot','cs9_seed_snapshot_archived','cs9_sync_log'].forEach(k=>{
+    if(localStorage.getItem(k)!=null){localStorage.removeItem(k);hit++;}
+  });
+  return hit;
+}function freeSales(days){
+  const cut=dkey(new Date(Date.now()-(days===undefined?45:days)*864e5));
+  const all=gs(),old=all.filter(s=>s.date<cut);
+  if(!old.length)return 0;
+  try{dl(new Blob([JSON.stringify(old,null,2)],{type:'application/json'}),'sales-archive-before-'+cut+'.json');}catch(e){}
+  localStorage.setItem(SK,JSON.stringify(all.filter(s=>s.date>=cut)));
+  return old.length;
+}
+
+// The resilient saver. Used for anything that must land — above all, a sale.
+// It escalates through the steps above and reports what it had to do, instead of
+// showing "storage full" to someone with a customer waiting.
+function svHard(k,v){
+  const str=JSON.stringify(v);
+  const tryIt=()=>{try{localStorage.setItem(k,str);return true;}catch(e){return false;}};
+  if(tryIt())return true;
+  const steps=[
+    ()=>freeOldBackups(), ()=>freeSnaps(14), ()=>freeBills(30), ()=>freeTiles(),
+    ()=>freeSnaps(3),  ()=>freeBills(7),  ()=>freeSeed(),
+    ()=>freeMirror(),  ()=>freeSales(45), ()=>freeSales(14)
+  ];
+  for(let i=0;i<steps.length;i++){
+    let freed=0;try{freed=steps[i]()||0;}catch(e){}
+    if(freed&&tryIt()){
+      toast('✅ Saved. Phone was full — cleared some old photos to make room.',5000);
+      try{localStorage.setItem('cs9_space_warned',td());}catch(e){}
+      return true;
+    }
+  }
+  if(tryIt())return true;
+  alert('Phone storage is completely full and this could not be saved.\n\nGo to More \u2192 Backup & Restore \u2192 Phone Storage and free up space now. Write this bill on paper until it is done.');
+  try{ setTimeout(openStorageRescue,400); }catch(e){}
+  return false;
+}
+// Anything below that holds a rupee figure or a stock count goes through svHard.
+// spp (stock counts) on the plain saver is what stopped sales saving: the bill landed,
+// the stock decrement did not, and the counter got "storage full" with a customer waiting.
+const gp=()=>tp(PK,defProds);const spp=v=>svHard(PK,v);
+const gs=()=>tp(SK,[]);const ss=v=>svHard(SK,v);
+const gd=()=>tp(DK,{});const sd=v=>svHard(DK,v);
 // Counter Safe is a GLOBAL persistent running total (NOT per-day) — survives day rollover
 const CBK='cs9_cb_global',CBDK='cs9_cb_global_det';
 const getCounterBox=()=>{try{return parseFloat(localStorage.getItem(CBK))||0;}catch(e){return 0;}};
@@ -1451,12 +1600,12 @@ const setCounterBoxDet=v=>localStorage.setItem(CBDK,JSON.stringify(v||{}));
 // (legacy totals, day-close merges with no note detail, expenses paid without a count).
 const safeDetSum=()=>{const d=getCounterBoxDet();return NOTES.reduce((a,n)=>a+(d[n]||0)*nval(n),0);};
 const safeUncounted=()=>Math.max(0,Math.round(getCounterBox()-safeDetSum()));
-const gcr=()=>tp(CK,[]);const scr=v=>sv(CK,v);
+const gcr=()=>tp(CK,[]);const scr=v=>svHard(CK,v);
 const gsc=()=>tp(SCK,defSC);const ssc=v=>sv(SCK,v);
-const go2=()=>tp(OK,[]);const so2=v=>sv(OK,v);
-const gdm=()=>tp(DMK,[]);const sdm=v=>sv(DMK,v);
-const gsp=()=>tp(SPK,[]);const ssp=v=>sv(SPK,v);
-const gho=()=>tp(HOK,[]);const sho=v=>sv(HOK,v);
+const go2=()=>tp(OK,[]);const so2=v=>svHard(OK,v);
+const gdm=()=>tp(DMK,[]);const sdm=v=>svHard(DMK,v);
+const gsp=()=>tp(SPK,[]);const ssp=v=>svHard(SPK,v);
+const gho=()=>tp(HOK,[]);const sho=v=>svHard(HOK,v);
 const RFK='cs9_refunds';const grf=()=>tp(RFK,[]);const srf=v=>sv(RFK,v);
 const refundsOn=d=>grf().filter(r=>r.date===d);
 const refundTotal=d=>refundsOn(d).reduce((a,r)=>a+(r.amt||0),0);
@@ -1535,6 +1684,74 @@ function archiveOldSales(){
   if(!confirm(old.length+' sales from before '+cs+' will be downloaded as a backup file and removed from the app to keep it fast.\n\nKeep that file safe. Continue?'))return;
   dl(new Blob([JSON.stringify(old,null,2)],{type:'application/json'}),'sales-archive-before-'+cs+'.json');
   ss(keep);toast('Archived '+old.length+' old sales');initHome();
+}
+function renderStorage(){
+  const m=document.getElementById('st-meter');if(!m)return;
+  const pct=lsPct(),used=lsUsed();
+  const col=pct>=90?'var(--rd)':pct>=75?'#c8841a':'var(--gr)';
+  m.innerHTML='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">'+
+    '<span style="font-size:13px;color:var(--sub)">'+kb(used)+' of about 4.5 MB used</span>'+
+    '<span style="font-size:20px;font-weight:800;color:'+col+'">'+pct+'%</span></div>'+
+    '<div style="height:10px;background:var(--cream);border-radius:6px;overflow:hidden;border:1px solid var(--border)">'+
+    '<div style="height:100%;width:'+pct+'%;background:'+col+'"></div></div>'+
+    (pct>=85?'<div style="font-size:12px;color:var(--rd);font-weight:700;margin-top:8px">Nearly full — free up space before the next rush.</div>':'');
+  const l=document.getElementById('st-list');if(!l)return;
+  const parts=lsBreakdown();
+  l.innerHTML=parts.length?parts.map(p=>'<div class="sr"><span style="font-size:13px">'+p.label+'</span><span style="font-weight:700;font-size:13px">'+kb(p.bytes)+'</span></div>').join(''):
+    '<div style="font-size:13px;color:var(--sub)">Nothing large stored yet.</div>';
+}
+// One button, because at the counter nobody wants a menu of storage choices.
+function freeUpNow(){
+  if(!confirm('This will remove:\n\n\u2022 old daily safety copies (last night\u2019s is kept)\n\u2022 bill photos on expenses older than 30 days\n\u2022 item-by-item stock lists older than 14 days\n\u2022 oversized Quick Add tile pictures\n\nAll amounts, sales, totals and expense records stay. Continue?'))return;
+  const b0=lsUsed();
+  const z=freeOldBackups();const a=freeBills(30),b=freeSnaps(14),c=freeTiles();
+  const saved=b0-lsUsed();
+  renderStorage();
+  toast('✅ Freed '+kb(Math.max(0,saved))+' — '+a+' bill photos, '+b+' old stock lists',5000);
+}
+// ═══ EMERGENCY RESCUE ═══
+// Opened automatically the moment a save fails, because the old toast was a dead end:
+// it named the problem and left staff standing at the counter with a customer waiting.
+// No confirm dialog here — nothing it clears is a rupee figure, and the sale comes first.
+function openStorageRescue(){
+  const el=document.getElementById('m-rescue');
+  if(!el||el.classList.contains('open'))return;
+  paintRescueMeter();
+  const o=document.getElementById('rsc-out');if(o)o.innerHTML='';
+  om('m-rescue');
+}
+function paintRescueMeter(){
+  const m=document.getElementById('rsc-meter');if(!m)return;
+  const pct=lsPct();
+  const col=pct>=90?'var(--rd)':pct>=75?'#c8841a':'var(--gr)';
+  m.innerHTML='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">'+
+    '<span style="font-size:13px;color:var(--sub)">'+kb(lsUsed())+' of about 4.5 MB used</span>'+
+    '<span style="font-size:22px;font-weight:800;color:'+col+'">'+pct+'%</span></div>'+
+    '<div style="height:12px;background:var(--cream);border-radius:6px;overflow:hidden;border:1px solid var(--border)">'+
+    '<div style="height:100%;width:'+pct+'%;background:'+col+'"></div></div>';
+}
+function rescueNow(){
+  const b0=lsUsed();
+  const did=[];
+  const step=(label,fn)=>{let n=0;try{n=fn()||0;}catch(e){}if(n)did.push(label);};
+  step('old safety copies',()=>freeOldBackups());
+  step('setup leftovers',()=>freeSeed());
+  step('stock lists over 14 days old',()=>freeSnaps(14));
+  step('bill photos over 30 days old',()=>freeBills(30));
+  step('oversized tile pictures',()=>freeTiles());
+  if(lsPct()>=85){
+    step('stock lists over 3 days old',()=>freeSnaps(3));
+    step('bill photos over 7 days old',()=>freeBills(7));
+    step('the cloud copy (pull it back from More \u2192 Cloud Sync)',()=>freeMirror());
+  }
+  const saved=Math.max(0,b0-lsUsed());
+  paintRescueMeter();
+  try{renderStorage();}catch(e){}
+  const o=document.getElementById('rsc-out');
+  if(o)o.innerHTML=saved
+    ? '<b style="color:var(--gr)">Freed '+kb(saved)+'.</b> Removed: '+did.join(', ')+'.<br>Go back and save the bill again.'
+    : '<b style="color:var(--rd)">Nothing left to clear automatically.</b> Tap \u201cDownload full backup file\u201d above, then go to More \u2192 Backup &amp; Restore \u2192 Phone Storage and archive old sales. Write bills on paper until then.';
+  if(saved)toast('✅ Freed '+kb(saved)+' — try saving again',5000);
 }
 function expCSV(){const rows=[['Date','Time','Items','Sub','Disc','Total','Payment','Note']];gs().forEach(s=>rows.push([s.date,s.time,s.items.map(i=>i.name+'x'+i.qty).join('|'),s.sub||s.total,s.disc||0,s.total,s.pay,s.note||'']));dl(new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'}),'sales-'+td()+'.csv');}
 function expJSON(){const data={loc:getLoc(),upi:getUpi(),refunds:grf(),products:gp(),sales:gs(),daily:gd(),credits:gcr(),creditPayments:gcrpay(),orders:go2(),damage:gdm(),special:gsp(),handovers:gho(),expenses:gexp(),returns:grtk(),shortcuts:gsc(),inventory:ginv(),counterBox:getCounterBox(),counterBoxDet:getCounterBoxDet(),staffList:gstaffl(),attendance:gatt()};dl(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),'backup-'+td()+'.json');toast('✅ Backup saved');}
@@ -2380,8 +2597,54 @@ function saveOpeningSnap(){
 function saveClosingSnap(){
   const prods=gp(),dd=gd(),t=td();
   const snap=prods.map(p=>({id:p.id,n:p.n,c:p.c,p:p.p,stock:p.stock}));
+  // A closing snapshot identical to the morning's opening means the shelf numbers never moved
+  // all day — either nothing was counted, or (as on 10 Sept) stock writes were failing silently
+  // while bills kept saving. Saving it anyway buries a wrong figure in the books and carries it
+  // into tomorrow's opening, so it has to be said out loud before it is accepted.
+  const open=(dd[t]||{}).openingSnap||[];
+  const billsToday=gs().filter(s=>s.date===t).length;
+  if(open.length&&billsToday){
+    const openMap={};open.forEach(p=>{openMap[p.id]=p.stock||0;});
+    const same=snap.every(p=>(openMap[p.id]||0)===(p.stock||0));
+    if(same){
+      const rb=rebuiltClosing(t);
+      if(!confirm('\u26a0 This closing count is identical to this morning\u2019s opening \u2014 item for item \u2014 even though '+
+        billsToday+' bills were rung up today.\n\nThat almost always means the shelf was not actually '+
+        'counted, or stock was not coming off the shelf as sales were saved.\n\nWorked out from today\u2019s '+
+        'movement, closing should be about '+fmt(rb.value)+', not '+fmt(snapValue(snap))+'.\n\nSave this count anyway?'))return;
+    }
+  }
   dd[t]={...(dd[t]||{}),closingSnap:snap,closingValue:snapValue(snap),closingSnapAt:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})};
   sd(dd);toast('📸 Closing snapshot saved — '+fmt(snapValue(snap)));initHome();
+}
+// Puts the calculated closing figure back on the shelf, item by item. For a day where the
+// count is known to be untrustworthy — stock writes failed, or nobody counted — this is the
+// repair: it never invents a quantity, it only applies opening + received - sold - damage.
+function rebuildClosingFromMovement(){
+  const t=td(),rb=rebuiltClosing(t);
+  if(rb.unavailable){alert('Cannot rebuild.\n\n'+rb.reason);return;}
+  let msg='Rebuild the shelf from today\u2019s movement?\n\nOpening '+fmt(rb.openingValue)+
+    (rb.openingDerived?' (derived — no opening snapshot)':'')+
+    '\nCalculated closing '+fmt(rb.value)+' across '+rb.onShelf.length+' items.';
+  if(rb.shortfall)msg+='\n\n\u26a0 '+rb.negatives.length+' item(s) sold without stock ('+fmt(rb.shortfall)+
+    '): '+rb.negatives.map(r=>r.n+' \u00d7'+r.short).join(', ')+'.\nThose are set to 0 and listed for review — not hidden in the total.';
+  if(rb.madeToOrder.length)msg+='\n\n'+rb.madeToOrder.length+' made-to-order line(s) worth '+fmt(rb.madeToOrderValue)+
+    ' stay in takings and out of stock.';
+  msg+='\n\nThis overwrites the current shelf counts. Continue?';
+  if(!confirm(msg))return;
+  const byId={};rb.lines.forEach(r=>{byId[r.id]=r.close;});
+  const prods=gp();
+  prods.forEach(p=>{if(byId[p.id]!==undefined)p.stock=byId[p.id];});
+  if(!spp(prods))return;
+  const dd=gd();
+  const snap=prods.map(p=>({id:p.id,n:p.n,c:p.c,p:p.p,stock:p.stock}));
+  dd[t]={...(dd[t]||{}),closingSnap:snap,closingValue:snapValue(snap),
+    closingSnapAt:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),
+    closingRebuilt:true,closingShortfall:rb.shortfall};
+  sd(dd);
+  try{renderStockList();}catch(e){}
+  toast('🔧 Shelf rebuilt — closing '+fmt(rb.value),5000);
+  initHome();
 }
 
 
@@ -2399,15 +2662,28 @@ function saveClosingSnap(){
 // Everything that moved today, per product.
 // Existing orders were delivered before this field existed, so fall back through what they do have.
 const deliveredOnOf=o=>o.deliveredOn||o.balSettleDate||o.delivDate||o.date;
+// Product ids drift: a catalogue item gets re-added with a new id, or an old bill carries an id
+// that no longer exists (some days' bills carry no ids at all). One resolver, used everywhere a
+// movement has to be attributed to a product, is what keeps every sold figure in a report equal.
+function resolveProdId(id,name,prods){
+  const list=prods||gp();
+  if(id&&list.some(p=>p.id===id))return id;
+  const hit=list.find(p=>p.n===name);
+  return hit?hit.id:null;
+}
 function todayFlows(date){
   const t=date||td();
   const sold={},dmg={},rtk={},rcv={},spd={};
-  const byName={};gp().forEach(p=>{byName[p.n]=p.id;});
-  gs().filter(s=>s.date===t).forEach(s=>(s.items||[]).forEach(i=>{if(i.id)sold[i.id]=(sold[i.id]||0)+(i.qty||0);}));
-  gdm().filter(x=>x.date===t).forEach(x=>{const id=x.id&&gp().some(p=>p.id===x.id)?x.id:byName[x.name];if(id)dmg[id]=(dmg[id]||0)+(x.qty||0);});
-  grtk().filter(r=>r.date===t).forEach(r=>(r.items||[]).forEach(i=>{const id=i.id||byName[i.name];if(id)rtk[id]=(rtk[id]||0)+(i.qty||0);}));
+  const prods=gp();
+  const resolve=(id,name)=>resolveProdId(id,name,prods);
+  gs().filter(s=>s.date===t).forEach(s=>(s.items||[]).forEach(i=>{
+    const id=resolve(i.id,i.name);
+    if(id)sold[id]=(sold[id]||0)+(i.qty||0);
+  }));
+  gdm().filter(x=>x.date===t).forEach(x=>{const id=resolve(x.id,x.name);if(id)dmg[id]=(dmg[id]||0)+(x.qty||0);});
+  grtk().filter(r=>r.date===t).forEach(r=>(r.items||[]).forEach(i=>{const id=resolve(i.id,i.name);if(id)rtk[id]=(rtk[id]||0)+(i.qty||0);}));
   const log=((gd()[t]||{}).newStockLog)||{};
-  Object.values(log).forEach(x=>{if(x&&x.id)rcv[x.id]=(rcv[x.id]||0)+(x.qty||0);});
+  Object.values(log).forEach(x=>{if(!x)return;const id=resolve(x.id,x.n);if(id)rcv[id]=(rcv[id]||0)+(x.qty||0);});
   gsp().forEach(o=>{if(o.status==='delivered'&&o.pid&&o.qty&&deliveredOnOf(o)===t)spd[o.pid]=(spd[o.pid]||0)+o.qty;});
   return {sold,dmg,rtk,rcv,spd};
 }
@@ -2428,6 +2704,69 @@ function derivedOpeningSnap(date){
     stock:Math.max(0,(p.stock||0)+(f.sold[p.id]||0)+(f.dmg[p.id]||0)+(f.rtk[p.id]||0)+(f.spd[p.id]||0)-(f.rcv[p.id]||0))}));
 }
 const snapValue=snap=>(snap||[]).reduce((a,x)=>a+(x.stock||0)*(x.p||0),0);
+
+// ═══ CLOSING STOCK, REBUILT FROM MOVEMENT ═══
+// Closing stock used to be one value equation: opening + received - goods sold - damage - returns.
+// Two things go wrong with a single equation, and both bit on 10 Sept:
+//  1. Selling an item the shelf never had (a made-to-order cake rung up on a catalogue button,
+//     or stock received but never entered) makes that line NEGATIVE, and a negative line silently
+//     cancels out a real positive one somewhere else. The total looks plausible and is wrong.
+//  2. goodsSum() counts every rupee that left the till, including special-order advances and
+//     off-catalogue cakes that were never on the shelf — so it subtracts stock that never existed.
+// Both disappear if closing is built per item and floored at zero per item, with the shortfall
+// reported separately instead of being netted away.
+function rebuiltClosing(date){
+  const t=date||td();
+  const dd=gd()[t]||{};
+  const prods=gp();
+  const hasOpenSnap=!!(dd.openingSnap&&dd.openingSnap.length);
+  // derivedOpeningSnap works backwards from what is on the shelf RIGHT NOW, so it is only
+  // meaningful for today. Applied to a past date it invented an opening figure and printed
+  // an impossible summary (0 + 0 - 0 = Rs 44,572). A past day with no opening snapshot cannot
+  // be rebuilt, and saying so is the only honest answer.
+  if(!hasOpenSnap&&t!==td()){
+    return {unavailable:true,
+      reason:'No opening snapshot was saved for '+t+', and opening cannot be worked backwards for a past date.',
+      lines:[],onShelf:[],value:null,negatives:[],shortfall:0,
+      madeToOrder:[],madeToOrderValue:0,openingValue:null,openingDerived:false};
+  }
+  const f=todayFlows(t);
+  const openSnap=hasOpenSnap?dd.openingSnap:derivedOpeningSnap(t);
+  const openQty={};openSnap.forEach(p=>{openQty[p.id]=p.stock||0;});
+  const lines=[],negatives=[];
+  prods.forEach(p=>{
+    const open=openQty[p.id]||0, recv=f.rcv[p.id]||0;
+    const sold=f.sold[p.id]||0, dmg=f.dmg[p.id]||0, rtk=f.rtk[p.id]||0, spd=f.spd[p.id]||0;
+    const net=open+recv-sold-dmg-rtk-spd;
+    if(!open&&!recv&&!sold&&!dmg&&!rtk&&!spd)return;
+    const row={id:p.id,n:p.n,c:p.c,p:p.p||0,open,recv,sold,dmg,rtk,spd,close:Math.max(0,net),short:net<0?-net:0};
+    lines.push(row);
+    if(net<0)negatives.push(row);
+  });
+  // Genuinely made to order: neither the id nor the name resolves to a catalogue product, so
+  // the shelf never held it. Resolved by the same rule as todayFlows, which is what stops an
+  // item appearing as on-shelf and as never-stocked in the same report.
+  const liveIds={};prods.forEach(p=>{liveIds[p.id]=1;});
+  const byName={};prods.forEach(p=>{byName[p.n]=p.id;});
+  const madeToOrder=[];
+  gs().filter(s=>s.date===t).forEach(s=>(s.items||[]).forEach(i=>{
+    if((i.id&&liveIds[i.id])||byName[i.name])return;
+    madeToOrder.push({n:i.name,qty:i.qty||0,val:(i.price||0)*(i.qty||0)});
+  }));
+  const value=lines.reduce((a,r)=>a+r.close*r.p,0);
+  return {
+    unavailable:false,
+    lines:lines.sort((a,b)=>(a.c||'zz').localeCompare(b.c||'zz')||a.n.localeCompare(b.n)),
+    onShelf:lines.filter(r=>r.close>0),
+    value,
+    negatives,
+    shortfall:negatives.reduce((a,r)=>a+r.short*r.p,0),
+    madeToOrder,
+    madeToOrderValue:madeToOrder.reduce((a,x)=>a+x.val,0),
+    openingValue:snapValue(openSnap),
+    openingDerived:!hasOpenSnap
+  };
+}
 function tradedToday(date){
   const f=todayFlows(date);
   return [f.sold,f.dmg,f.rtk,f.rcv,f.spd].some(o=>Object.values(o).some(v=>v>0));
@@ -3963,7 +4302,7 @@ function calcExpNotes(){
 // re-encoded as JPEG, which keeps printed bill text readable at roughly 100-150 KB.
 // PDFs cannot be shrunk, so they are accepted only under 400 KB.
 var expBillPending=null;
-var BILL_MAX_DIM=1400, BILL_Q=0.62, PDF_MAX=400*1024;
+var BILL_MAX_DIM=1100, BILL_Q=0.55, BILL_TARGET=120*1024, PDF_MAX=300*1024;
 function pickExpBill(input){
   const f=input.files&&input.files[0];input.value='';
   if(!f)return;
@@ -3983,8 +4322,17 @@ function pickExpBill(input){
       w=Math.round(w*sc);hh=Math.round(hh*sc);
       const c=document.createElement('canvas');c.width=w;c.height=hh;
       const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,hh);ctx.drawImage(img,0,0,w,hh);
+      // Step the quality down until the bill actually fits the budget. One 248 KB
+      // photo used to be enough to stop the whole shop selling.
       let data=c.toDataURL('image/jpeg',BILL_Q);
-      if(data.length>900000)data=c.toDataURL('image/jpeg',0.45);
+      [0.45,0.35,0.28].forEach(q=>{if(data.length>BILL_TARGET)data=c.toDataURL('image/jpeg',q);});
+      if(data.length>BILL_TARGET*2){
+        const c2=document.createElement('canvas'),s2=0.7;
+        c2.width=Math.round(w*s2);c2.height=Math.round(hh*s2);
+        const x2=c2.getContext('2d');x2.fillStyle='#fff';x2.fillRect(0,0,c2.width,c2.height);
+        x2.drawImage(img,0,0,c2.width,c2.height);
+        data=c2.toDataURL('image/jpeg',0.4);
+      }
       expBillPending={type:'img',name:f.name||'bill.jpg',data,size:Math.round(data.length*0.75)};
       renderExpBillPreview();
     };
@@ -4186,12 +4534,25 @@ function _genEODCSV(date,dd,sales,exps,dmgs,rtks,sps,prods){
   const upi=byp('upi')+sales.filter(s=>s.pay==='split').reduce((a,s)=>a+(s.spU||0),0);
   const cash=byp('cash')+sales.filter(s=>s.pay==='split').reduce((a,s)=>a+(s.spC||0),0);
   const card=byp('card'),cred=byp('credit'),tot=sales.reduce((a,s)=>a+s.total,0);
-  const op=dd.opening||0,ns=dd.newStock||0;
+  // The stored `opening` figure and the opening snapshot used to be read independently: the
+  // summary took dd.opening, the detail table totalled dd.openingSnap. On 10 Sept those were
+  // Rs 5,490 and Rs 4,830 — the same report contradicting itself by Rs 660. The snapshot is the
+  // item-level truth, so it wins, and any disagreement is printed rather than hidden.
+  const openSnapVal=snapValue(dd.openingSnap||[]);
+  const opStored=dd.opening||0;
+  const op=(dd.openingSnap&&dd.openingSnap.length)?openSnapVal:opStored;
+  const nsLogVal=Object.values(dd.newStockLog||{}).reduce((a,p)=>a+(p.p||0)*(p.qty||0),0);
+  const ns=nsLogVal||dd.newStock||0;
   const dmgVal=dmgs.reduce((a,d)=>a+d.value,0);
   const rtkVal=rtks.reduce((a,r)=>a+r.value,0);
   const expCash=exps.filter(e=>e.source==='cashbox').reduce((a,e)=>a+e.amt,0);
   const expTot=exps.reduce((a,e)=>a+e.amt,0);
-  const cl=Math.max(0,op+ns-goodsSum(sales)-spGoodsOut(date)-dmgVal-rtkVal);
+  // Closing is built per item and floored per item — see rebuiltClosing(). The old single
+  // equation netted items sold-without-stock against items still on the shelf and produced
+  // Rs 1,460 for a day whose real shelf was Rs 4,350.
+  const rb=rebuiltClosing(date);
+  const clStored=(dd.closingSnap&&dd.closingSnap.length)?snapValue(dd.closingSnap):(dd.closingValue||0);
+  const cl=rb.unavailable?clStored:rb.value;
   const cashDet=dd.dayBoxDet||{};
   const N=n=>Math.round(n||0);
   const rows=[];
@@ -4235,9 +4596,27 @@ function _genEODCSV(date,dd,sales,exps,dmgs,rtks,sps,prods){
   rows.push(['Net Cash (Day + Counter, after expenses)','',N((dd.dayBox||0)+getCounterBox())]);sep();
 
   hdr('STOCK SUMMARY');
-  rows.push(['Opening Stock',N(op)]);rows.push(['New Stock Added',N(ns)]);rows.push(['Total',N(op+ns)]);
-  rows.push(['(-) Sales (goods value)',N(goodsSum(sales))]);rows.push(['(-) Damage',N(dmgVal)]);rows.push(['(-) Return to Kitchen',N(rtkVal)]);
-  rows.push(['= Closing Stock',N(cl)]);sep();
+  if(rb.unavailable){
+    rows.push(['Cannot be rebuilt',rb.reason]);
+    rows.push(['Opening Stock (as stored)',N(opStored)]);
+    rows.push(['New Stock Added',N(ns)]);
+    rows.push(['Closing Stock (as stored)',N(clStored)]);
+    rows.push(['Sales (goods value)',N(goodsSum(sales))]);
+    rows.push(['(-) Damage',N(dmgVal)]);rows.push(['(-) Return to Kitchen',N(rtkVal)]);
+    rows.push(['note','these are the figures saved on the day; they are not re-derived and may not balance']);
+  }else{
+    rows.push(['Opening Stock',N(op)]);
+    if(dd.openingSnap&&dd.openingSnap.length&&Math.abs(opStored-openSnapVal)>1)
+      rows.push(['  note','stored opening was '+N(opStored)+'; item detail totals '+N(openSnapVal)+' — detail used']);
+    if(rb.openingDerived)rows.push(['  note','no opening snapshot — opening derived from today’s movement']);
+    rows.push(['New Stock Added',N(ns)]);rows.push(['Total',N(op+ns)]);
+    rows.push(['(-) Sold off the shelf (goods value)',N(rb.lines.reduce((a,r)=>a+Math.min(r.sold,r.open+r.recv)*r.p,0))]);
+    rows.push(['(-) Damage',N(dmgVal)]);rows.push(['(-) Return to Kitchen',N(rtkVal)]);
+    rows.push(['= Closing Stock',N(cl)]);
+    if(rb.shortfall)rows.push(['⚠ Sold without stock (not netted off)',N(rb.shortfall)]);
+    if(rb.madeToOrderValue)rows.push(['Made to order (in takings, not stock)',N(rb.madeToOrderValue)]);
+  }
+  sep();
 
   hdr('OPENING STOCK DETAIL');
   const openSnap=dd.openingSnap||[];
@@ -4267,10 +4646,54 @@ function _genEODCSV(date,dd,sales,exps,dmgs,rtks,sps,prods){
     sep();
   }
   hdr('CLOSING STOCK DETAIL');
-  const closeSnap=dd.closingSnap||prods.map(p=>({id:p.id,n:p.n,c:p.c,p:p.p,stock:p.stock}));
+  if(rb.unavailable){
+    rows.push([rb.reason]);
+    if(dd.closingSnap&&dd.closingSnap.length){
+      rows.push(['Showing the count saved on the day instead.']);
+      rows.push(['Product','Category','Price','Qty','Value (Rs)']);
+      dd.closingSnap.filter(p=>p.stock>0).forEach(p=>rows.push([p.n,p.c,N(p.p),p.stock,N(p.p*p.stock)]));
+      rows.push(['TOTAL COUNTED VALUE','','','',N(clStored)]);
+    }else rows.push(['No closing count was saved for this day either.']);
+    sep();
+  }else{
+  rows.push(['Built from opening + received - sold - damage - returns, floored at zero per item.']);
   rows.push(['Product','Category','Price','Qty','Value (Rs)']);
-  closeSnap.filter(p=>p.stock>0).forEach(p=>rows.push([p.n,p.c,N(p.p),p.stock,N(p.p*p.stock)]));
-  rows.push(['TOTAL CLOSING VALUE','','','',N(closeSnap.reduce((a,p)=>a+(p.p||0)*(p.stock||0),0))]);sep();
+  rb.onShelf.forEach(r=>rows.push([r.n,r.c,N(r.p),r.close,N(r.p*r.close)]));
+  rows.push(['TOTAL CLOSING VALUE','','',rb.onShelf.reduce((a,r)=>a+r.close,0),N(rb.value)]);sep();
+
+  // The physical count is kept alongside the calculated figure rather than replacing it, so a
+  // miscount shows up as a difference instead of quietly becoming the day's closing stock.
+  if(dd.closingSnap&&dd.closingSnap.length){
+    const physVal=snapValue(dd.closingSnap);
+    if(Math.abs(physVal-rb.value)>1){
+      hdr('COUNTED CLOSING STOCK (PHYSICAL)');
+      rows.push(['Counted at',dd.closingSnapAt||'']);
+      rows.push(['Product','Category','Price','Qty','Value (Rs)']);
+      dd.closingSnap.filter(p=>p.stock>0).forEach(p=>rows.push([p.n,p.c,N(p.p),p.stock,N(p.p*p.stock)]));
+      rows.push(['TOTAL COUNTED VALUE','','','',N(physVal)]);
+      rows.push(['DIFFERENCE vs CALCULATED','','','',N(physVal-rb.value)]);
+      const openMapC={};(dd.openingSnap||[]).forEach(p=>{openMapC[p.id]=p.stock||0;});
+      if((dd.openingSnap||[]).length&&sales.length&&dd.closingSnap.every(p=>(openMapC[p.id]||0)===(p.stock||0)))
+        rows.push(['⚠ WARNING','this count is identical to opening despite '+sales.length+' bills — treat it as not counted']);
+      sep();
+    }
+  }
+  if(rb.negatives.length){
+    hdr('SOLD WITHOUT STOCK — REVIEW');
+    rows.push(['These sold more than the shelf ever held. Closing is set to 0 for them and the']);
+    rows.push(['shortfall is listed here instead of cancelling out other items in the total.']);
+    rows.push(['Product','Opening','Received','Sold','Shortfall Qty','Rate','Shortfall Value (Rs)']);
+    rb.negatives.forEach(r=>rows.push([r.n,r.open,r.recv,r.sold,r.short,N(r.p),N(r.short*r.p)]));
+    rows.push(['TOTAL SHORTFALL','','','','','',N(rb.shortfall)]);sep();
+  }
+  if(rb.madeToOrder.length){
+    hdr('MADE TO ORDER — NOT SHELF STOCK');
+    rows.push(['Sold but matching no catalogue product by id or name, so excluded from stock math.']);
+    rows.push(['Item','Qty','Value (Rs)']);
+    rb.madeToOrder.forEach(x=>rows.push([x.n,x.qty,N(x.val)]));
+    rows.push(['TOTAL','',N(rb.madeToOrderValue)]);sep();
+  }
+  }
 
   // Per-item reconciliation — same columns as the Daily Stock Reconciliation template:
   // Opening / Received / Total / Sold / Wastage / Expected Closing / Physical Closing / Difference.
@@ -4278,30 +4701,46 @@ function _genEODCSV(date,dd,sales,exps,dmgs,rtks,sps,prods){
   // that a total-value-only view would hide.
   hdr('STOCK RECONCILIATION (PER ITEM)');
   {
-    const openMap={};(dd.openingSnap||[]).forEach(p=>{openMap[p.id]=p;});
-    const recvMap={};Object.values(dd.newStockLog||{}).forEach(p=>{recvMap[p.id]=p;});
-    const closeMapR={};closeSnap.forEach(p=>{closeMapR[p.id]=p;});
-    const soldMap={};sales.forEach(s=>(s.items||[]).forEach(i=>{soldMap[i.id]=(soldMap[i.id]||0)+i.qty;}));
-    const wasteMap={};dmgs.forEach(d=>{wasteMap[d.name]=(wasteMap[d.name]||0)+d.qty;}); // damage has no product id, matched by name
-    const allIds=new Set([...Object.keys(openMap),...Object.keys(recvMap),...Object.keys(closeMapR),...Object.keys(soldMap)]);
+    // Every movement figure here comes from todayFlows(), the same resolver the summary and the
+    // closing detail use. Building a private soldMap on raw i.id meant one report carried two
+    // different sold figures for the same item, and on days whose bills carry no ids at all it
+    // dropped every row while the rest of the report looked fine.
+    const fR=todayFlows(date);
+    const prodById={};prods.forEach(p=>{prodById[p.id]=p;});
+    const openMap={};(dd.openingSnap||[]).forEach(p=>{const id=resolveProdId(p.id,p.n,prods);if(id)openMap[id]=p;});
+    const recvMap={};Object.values(dd.newStockLog||{}).forEach(p=>{const id=resolveProdId(p.id,p.n,prods);if(id)recvMap[id]=p;});
+    const closeMapR={};
+    // "Physical Closing" means what was actually counted. Where no count exists, the column is
+    // left empty rather than being filled with the calculated figure — a calculated number in a
+    // physical column is how a miscount disguises itself as agreement.
+    (dd.closingSnap||[]).forEach(p=>{const id=resolveProdId(p.id,p.n,prods);if(id)closeMapR[id]=p;});
+    const allIds=new Set([...Object.keys(openMap),...Object.keys(recvMap),...Object.keys(closeMapR),
+      ...Object.keys(fR.sold),...Object.keys(fR.dmg),...Object.keys(fR.rtk),...Object.keys(fR.rcv)]);
+    const hasPhysical=!!(dd.closingSnap&&dd.closingSnap.length);
     rows.push(['Item','Opening Qty','Received Qty','Total Qty','Sold Qty','Wastage Qty','Expected Closing','Physical Closing','Difference Qty','Rate (Rs)','Difference Value (Rs)']);
+    if(!hasPhysical)rows.push(['No physical count was saved for this day, so the difference columns are left blank.']);
     let anyDiff=false;
     allIds.forEach(id=>{
-      const ref=openMap[id]||recvMap[id]||closeMapR[id];
+      const ref=prodById[id]||openMap[id]||closeMapR[id]||recvMap[id];
       if(!ref)return;
       const opQ=openMap[id]?(openMap[id].stock||0):0;
-      const rvQ=recvMap[id]?(recvMap[id].qty||0):0;
+      const rvQ=fR.rcv[id]||0;
       const totQ=opQ+rvQ;
-      const sdQ=soldMap[id]||0;
-      const wQ=wasteMap[ref.n]||0;
-      const expC=totQ-sdQ-wQ;
+      const sdQ=fR.sold[id]||0;
+      const wQ=fR.dmg[id]||0;
+      const expC=totQ-sdQ-wQ-(fR.rtk[id]||0)-(fR.spd[id]||0);
+      const rate=ref.p||0;
+      const nm=ref.n||'';
+      if(!hasPhysical){
+        rows.push([nm,opQ,rvQ,totQ,sdQ,wQ,expC,'','',N(rate),'']);
+        return;
+      }
       const physC=closeMapR[id]?(closeMapR[id].stock||0):0;
       const diffQ=physC-expC;
       if(diffQ!==0)anyDiff=true;
-      const rate=ref.p||0;
-      rows.push([ref.n,opQ,rvQ,totQ,sdQ,wQ,expC,physC,diffQ,N(rate),N(diffQ*rate)]);
+      rows.push([nm,opQ,rvQ,totQ,sdQ,wQ,expC,physC,diffQ,N(rate),N(diffQ*rate)]);
     });
-    rows.push([anyDiff?'⚠ Differences found above — review flagged items':'✓ All items matched, no discrepancy']);
+    if(hasPhysical)rows.push([anyDiff?'⚠ Differences found above — review flagged items':'✓ All items matched, no discrepancy']);
   }
   sep();
 
@@ -4337,7 +4776,9 @@ function _genEODCSV(date,dd,sales,exps,dmgs,rtks,sps,prods){
   rows.push(['Sr','Time','Items','Qty','Amount (Rs)','Payment','Staff','Note']);
   sales.forEach((s,si)=>rows.push([si+1,s.time,s.items.map(i=>i.name+'x'+i.qty).join('|'),s.items.reduce((a,i)=>a+i.qty,0),N(s.total),s.pay.toUpperCase(),s.staff||'',s.note||'']));
 
-  const csv=rows.map(r=>r.map(c=>{const s=String(c||'');return s.includes(',')||s.includes('"')?'"'+s.replace(/"/g,'""')+'"':s;}).join(',')).join('\n');
+  // A real 0 must print as 0. `c||''` turned every zero into an empty cell, and on a money
+  // report a blank where a zero belongs reads as "never recorded" — the opposite of the truth.
+  const csv=rows.map(r=>r.map(c=>{const s=(c==null?'':String(c));return s.includes(',')||s.includes('"')?'"'+s.replace(/"/g,'""')+'"':s;}).join(',')).join('\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download='EOD-'+date+'.csv';
@@ -4761,11 +5202,46 @@ try{if(gs().some(s=>s.test)||localStorage.getItem(SEED_KEY))wipeTestData(true);}
   try{
     const today=new Date().toISOString().slice(0,10);
     const stamp='cs9_backup_'+today;
+
+    // ── One-time cleanup of copies written by the older, fatter version ──
+    // Those kept two full copies INCLUDING the cloud-sync mirrors and bill photos:
+    // 3.8 MB each on a real till, 7.6 MB of a 5 MB phone, and no room left to record a
+    // sale. Prevention alone does not help a phone that is already full, so this runs
+    // before anything else and shrinks what is already there. Figures are never touched.
+    try{
+      const FAT=/^(cs9_sync_|cs9_stamp|cs9_sign|cs9_seed_snapshot|cs9_sync_fp|cs9_sync_log)/;
+      const keys=[];
+      for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf('cs9_backup_')===0)keys.push(k);}
+      keys.sort();
+      keys.slice(0,Math.max(0,keys.length-1)).forEach(k=>localStorage.removeItem(k));
+      const newest=keys[keys.length-1];
+      if(newest){
+        const raw=localStorage.getItem(newest)||'';
+        if(raw.length>900*1024){
+          try{
+            const d=JSON.parse(raw);
+            Object.keys(d).forEach(k=>{if(FAT.test(k))delete d[k];});
+            if(d[EXP_KEY]){const ex=JSON.parse(d[EXP_KEY]);
+              if(Array.isArray(ex)){ex.forEach(e=>{if(e&&e.bill){e.billRemoved=1;delete e.bill;}});d[EXP_KEY]=JSON.stringify(ex);}}
+            if(d[SCK]){const sc=JSON.parse(d[SCK]);
+              if(Array.isArray(sc)){sc.forEach(s=>{if(s&&s.img)delete s.img;});d[SCK]=JSON.stringify(sc);}}
+            const slim=JSON.stringify(d);
+            localStorage.removeItem(newest);
+            if(slim.length<=900*1024)localStorage.setItem(newest,slim);
+          }catch(e){localStorage.removeItem(newest);}
+        }
+      }
+    }catch(e){}
+
     if(localStorage.getItem(stamp))return;
-    // The stamp and signature are base64 images — by far the biggest keys, never changed
-    // after setup, and worthless in a recovery. Copying them three times over is what
-    // would push a busy till past its storage limit and silently kill the backup.
-    const SKIP=/^(cs9_stamp|cs9_sign|cs9_seed_snapshot.*|cs9_sync_log|cs9_sync_fp|cs9_backup_)/;
+    // What this copy is FOR: getting the figures back. Not photos, and not a second
+    // copy of something already in the dump.
+    //   - stamp/sign/tile images: base64, set once, worthless in a recovery
+    //   - cs9_sync_*: mirrors of the primary keys, which are already being copied here.
+    //     Including them doubled the size of every backup for nothing.
+    // Two of these backups at 3.8 MB each once took 7.6 MB of a 5 MB phone and stopped
+    // the shop from saving sales — the app filling its own storage with copies of itself.
+    const SKIP=/^(cs9_stamp|cs9_sign|cs9_seed_snapshot.*|cs9_sync_|cs9_backup_|cs9_space_)/;
     const dump={};
     for(let i=0;i<localStorage.length;i++){
       const k=localStorage.key(i);
@@ -4773,6 +5249,22 @@ try{if(gs().some(s=>s.test)||localStorage.getItem(SEED_KEY))wipeTestData(true);}
       dump[k]=localStorage.getItem(k);
     }
     if(!Object.keys(dump).length)return;
+
+    // Bill photos live inside cs9_exp. Keep the expense and its amount, drop the image —
+    // a 250 KB photo in a daily copy is how a till runs out of room.
+    try{
+      if(dump[EXP_KEY]){
+        const ex=JSON.parse(dump[EXP_KEY]);
+        if(Array.isArray(ex)){
+          ex.forEach(e=>{if(e&&e.bill){e.billRemoved=1;delete e.bill;}});
+          dump[EXP_KEY]=JSON.stringify(ex);
+        }
+      }
+      if(dump[SCK]){
+        const sc=JSON.parse(dump[SCK]);
+        if(Array.isArray(sc)){sc.forEach(s=>{if(s&&s.img)delete s.img;});dump[SCK]=JSON.stringify(sc);}
+      }
+    }catch(e){}
 
     const olds=()=>{
       const a=[];
@@ -4782,20 +5274,29 @@ try{if(gs().some(s=>s.test)||localStorage.getItem(SEED_KEY))wipeTestData(true);}
       }
       return a.sort();
     };
-    // Trim to the last one BEFORE writing, so the new copy has room on a full device and
-    // the shop is left holding two days total — which is what the Recover page promises.
-    olds().slice(0,Math.max(0,olds().length-1)).forEach(k=>localStorage.removeItem(k));
+    // Trim every older copy BEFORE writing. The app used to keep two, which on a real
+    // till meant 7.6 MB of duplicated history and no room left to record a sale.
+    // One copy from last night, plus the downloadable Full Backup, is the honest promise.
+    olds().filter(k=>k!==stamp).forEach(k=>localStorage.removeItem(k));
 
     const body=JSON.stringify(dump);
+    // A safety copy is never worth the sale it blocks. Over this size it is not stored at
+    // all and the shop is told to take a real backup instead.
+    const BK_MAX=900*1024;
     let ok=false;
-    for(let attempt=0;attempt<3&&!ok;attempt++){
-      try{localStorage.setItem(stamp,body);ok=true;}
-      catch(e){
-        // Out of room: drop the oldest copy and try again rather than giving up quietly.
-        const list=olds().filter(k=>k!==stamp);
-        if(!list.length)break;
-        localStorage.removeItem(list[0]);
+    if(body.length<=BK_MAX){
+      for(let attempt=0;attempt<3&&!ok;attempt++){
+        try{localStorage.setItem(stamp,body);ok=true;}
+        catch(e){
+          // Out of room: drop every other copy, then give up rather than crowd the till.
+          const list=olds().filter(k=>k!==stamp);
+          if(!list.length)break;
+          list.forEach(k=>localStorage.removeItem(k));
+        }
       }
+    }else{
+      olds().forEach(k=>localStorage.removeItem(k));
+      try{setTimeout(()=>{if(typeof toast==='function')toast('⚠️ Daily safety copy too big to keep on the phone — take a Full Backup (JSON) today',6000);},4000);}catch(e){}
     }
     // A backup that never happened must not look like one that did. This flag is read by
     // the Recover page so the shop is told, instead of finding out when it matters.
@@ -4853,6 +5354,7 @@ if(typeof _origMTab === 'function') {
     if(t === 'data') {
       // Ensure clear button visible
       const snapD = document.getElementById('snap-date'); if(snapD && !snapD.value) snapD.value = td();
+      try{ renderStorage(); }catch(e){}
     }
   };
 }
@@ -5413,6 +5915,17 @@ function checkShiftReminders(){
   if(touched)localStorage.setItem(SHIFT_SEEN,JSON.stringify(seen));
 }
 setInterval(checkShiftReminders,60000);
+
+// Storage fills up silently and then stops the shop selling. Say it once a day,
+// early, while there is still time to do something about it calmly.
+(function(){
+  try{
+    if(lsPct()<80)return;
+    if(localStorage.getItem('cs9_space_warned')===td())return;
+    localStorage.setItem('cs9_space_warned',td());
+    setTimeout(()=>toast('⚠️ Phone storage '+lsPct()+'% full — More → Backup → Free Up Space',6000),2500);
+  }catch(e){}
+})();
 setTimeout(checkShiftReminders,4000);
 function attRangeVals(prefix){
   const f=document.getElementById(prefix+'-from')?.value;
@@ -5467,7 +5980,7 @@ function downloadAttendance(prefix){
   if(!att.length){toast('No attendance between those dates');return;}
   const rows=[['Date','Name','Role','In','Out','Out date','Hours','Verified by']];
   att.forEach(a=>rows.push([a.date,a.name,a.role||'',a.inTime,a.outTime||'',a.outDate&&a.outDate!==a.date?a.outDate:'',a.outTime?hrs(attMinutes(a)):'',a.method||'']));
-  dl(new Blob([rows.map(r=>r.map(c=>{const s=String(c||'');return s.includes(',')?'"'+s+'"':s;}).join(',')).join('\n')],{type:'text/csv'}),'attendance-'+td()+'.csv');
+  dl(new Blob([rows.map(r=>r.map(c=>{const s=(c==null?'':String(c));return s.includes(',')?'"'+s+'"':s;}).join(',')).join('\n')],{type:'text/csv'}),'attendance-'+td()+'.csv');
 }
 // ══════════════════════════════════════════
 // PROBLEM LOG — notes written at the counter, not remembered on Friday
